@@ -8,6 +8,10 @@ import { GameState } from './model/GameState';
 import { Restaurant } from './model/Restaurant';
 import { v4 as uuidv4 } from 'uuid';
 import { loadInitialData } from './model/initialData';
+import { GameState } from './model/GameState';
+import { Restaurant } from './model/Restaurant';
+import { v4 as uuidv4 } from 'uuid';
+import { loadInitialData } from './model/initialData';
 import { Furniture, PlacedFurniture } from './Furniture';
 
 export enum GameState {
@@ -328,6 +332,35 @@ export class Game {
             const tile = this.map.getTile(row, col);
             if (tile && tile.type === TileType.BuildingForSale && tile.price) {
                 this.uiManager.showPurchasePanel(tile.price, () => {
+                    if (this.gameState.playerMoney >= tile.price!) {
+                        this.gameState.playerMoney -= tile.price!;
+                        tile.type = TileType.BuildingOwned;
+
+                        const newRestaurant: Restaurant = {
+                            id: uuidv4(),
+                            location: { row, col },
+                            furniture: [],
+                            menu: [],
+                            employees: [],
+                            stats: { reputation: 10, dailyIncome: 0 }
+                        };
+
+                        this.gameState.addRestaurant(newRestaurant);
+                        tile.restaurantId = newRestaurant.id;
+
+                        this.uiManager.hidePurchasePanel();
+                        console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.gameState.playerMoney}`);
+                        console.log('New restaurant created:', newRestaurant);
+                    } else {
+                        alert("Not enough money!");
+                    }
+                });
+            } else if (tile && tile.type === TileType.BuildingOwned) {
+                const restaurant = this.gameState.restaurants.find(r => r.id === tile.restaurantId);
+                if (restaurant) {
+                    console.log('Clicked on owned restaurant:', restaurant);
+                    alert(`Restaurant Details:\nID: ${restaurant.id}\nLocation: (${restaurant.location.row}, ${restaurant.location.col})`);
+                }
                     if (this.gameState.playerMoney >= tile.price!) {
                         this.gameState.playerMoney -= tile.price!;
                         tile.type = TileType.BuildingOwned;
