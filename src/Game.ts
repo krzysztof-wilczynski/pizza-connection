@@ -1,4 +1,4 @@
-import { gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
+import { BUILDING_HEIGHT, gridToScreen, isPointInPolygon, Point, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
 import { GameMap, TileType } from './Map';
 import { Player } from './Player';
 import { UIManager } from './UIManager';
@@ -94,8 +94,7 @@ export class Game {
     }
 
     private drawBuilding(x: number, y: number, color: string): void {
-        const buildingHeight = 64; // The visual height of the building
-        const topY = y - buildingHeight;
+        const topY = y - BUILDING_HEIGHT;
 
         // Draw top face
         this.ctx.fillStyle = color;
@@ -134,26 +133,59 @@ export class Game {
 
     private handleMouseClick(event: MouseEvent): void {
         const rect = this.canvas.getBoundingClientRect();
-        const screenX = event.clientX - rect.left - this.cameraOffset.x;
-        const screenY = event.clientY - rect.top - this.cameraOffset.y;
+        const clickPoint: Point = {
+            x: event.clientX - rect.left - this.cameraOffset.x,
+            y: event.clientY - rect.top - this.cameraOffset.y,
+        };
 
-        const gridPos = screenToGrid(screenX, screenY);
-        const col = Math.floor(gridPos.x);
-        const row = Math.floor(gridPos.y);
+        // Iterate from front to back to respect Z-order
+        for (let row = this.map.rows - 1; row >= 0; row--) {
+            for (let col = this.map.cols - 1; col >= 0; col--) {
+                const tile = this.map.getTile(row, col);
 
-        if (row >= 0 && row < this.map.rows && col >= 0 && col < this.map.cols) {
-            const tile = this.map.getTile(row, col);
-            if (tile && tile.type === TileType.BuildingForSale && tile.price) {
-                this.uiManager.showPurchasePanel(tile.price, () => {
-                    if (this.player.canAfford(tile.price!)) {
-                        this.player.spendMoney(tile.price!);
-                        tile.type = TileType.BuildingOwned;
-                        this.uiManager.hidePurchasePanel();
-                        console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.player.getMoney()}`);
-                    } else {
-                        alert("Not enough money!");
+                if (tile && (tile.type === TileType.BuildingForSale || tile.type === TileType.BuildingOwned)) {
+                    const screenPos = gridToScreen(col, row);
+                    const topY = screenPos.y - BUILDING_HEIGHT;
+
+                    // Define polygons for the building's visible faces
+                    const topFace: Point[] = [
+                        { x: screenPos.x, y: topY },
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                    ];
+
+                    const leftFace: Point[] = [
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x, y: screenPos.y + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: screenPos.y + TILE_HEIGHT_HALF },
+                    ];
+
+                    const rightFace: Point[] = [
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x, y: screenPos.y + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: screenPos.y + TILE_HEIGHT_HALF },
+                    ];
+
+                    if (isPointInPolygon(clickPoint, topFace) || isPointInPolygon(clickPoint, leftFace) || isPointInPolygon(clickPoint, rightFace)) {
+                        if (tile.type === TileType.BuildingForSale && tile.price) {
+                            this.uiManager.showPurchasePanel(tile.price, () => {
+                                if (this.player.canAfford(tile.price!)) {
+                                    this.player.spendMoney(tile.price!);
+                                    tile.type = TileType.BuildingOwned;
+                                    this.uiManager.hidePurchasePanel();
+                                    console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.player.getMoney()}`);
+                                } else {
+                                    alert("Not enough money!");
+                                }
+                            });
+                        }
+                        // If we found a clicked building, we can stop checking
+                        return;
                     }
-                });
+                }
             }
         }
     }
