@@ -8,6 +8,7 @@ import { GameMap, Tile, TileType } from './Map';
 import { Player } from './Player';
 import { BUILDING_HEIGHT, gridToScreen, isPointInPolygon, Point, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
 import { GameMap, TileType } from './Map';
+import { PizzaCreator } from './PizzaCreator';
 import { UIManager } from './UIManager';
 import { Furniture, PlacedFurniture } from './Furniture';
 
@@ -118,6 +119,7 @@ export class Game {
     private gameState: GameState;
     private cameraOffset = { x: 0, y: 0 };
     private uiManager: UIManager;
+    private pizzaCreator: PizzaCreator;
 
     private currentState: GameState = GameState.City;
     private activeBuilding: Tile | null = null;
@@ -136,9 +138,15 @@ export class Game {
         this.gameState = GameState.getInstance();
         loadInitialData(this.gameState, this.map);
         this.uiManager = new UIManager();
+        this.pizzaCreator = new PizzaCreator();
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
+        this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
         this.canvas.addEventListener('click', this.handleMouseClick.bind(this));
+        window.addEventListener('keydown', this.handleKeyDown.bind(this));
+
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -240,6 +248,21 @@ export class Game {
         this.drawFurnitureGhost(interiorOffsetX, interiorOffsetY);
 
         this.ctx.restore();
+
+        // Draw UI overlays
+        this.drawTempUI();
+        this.pizzaCreator.render(this.ctx);
+    }
+
+    private drawTempUI(): void {
+        // Draw a temporary button to open the pizza creator
+        this.ctx.fillStyle = '#27ae60';
+        this.ctx.fillRect(10, 10, 200, 50);
+        this.ctx.fillStyle = '#ecf0f1';
+        this.ctx.font = '20px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Otwórz Kreator Pizzy', 110, 40);
+        this.ctx.textAlign = 'left';
 
         this.drawBackButton();
         this.drawFurniturePanel();
@@ -383,6 +406,34 @@ export class Game {
         this.ctx.stroke();
     }
 
+    private handleKeyDown(event: KeyboardEvent): void {
+        if (this.pizzaCreator.active) {
+            if (event.key === 'Escape') {
+                this.pizzaCreator.close();
+            } else {
+                this.pizzaCreator.handleKeyDown(event);
+            }
+        }
+    }
+
+    private handleMouseDown(event: MouseEvent): void {
+        if (this.pizzaCreator.active) {
+            this.pizzaCreator.handleMouseDown(event);
+        }
+    }
+
+    private handleMouseMove(event: MouseEvent): void {
+        if (this.pizzaCreator.active) {
+            this.pizzaCreator.handleMouseMove(event);
+        }
+    }
+
+    private handleMouseUp(event: MouseEvent): void {
+        if (this.pizzaCreator.active) {
+            this.pizzaCreator.handleMouseUp(event);
+        }
+    }
+
     private handleMouseClick(event: MouseEvent): void {
         switch (this.currentState) {
             case GameState.City:
@@ -395,7 +446,20 @@ export class Game {
     }
 
     private handleCityMouseClick(event: MouseEvent): void {
+        if (this.pizzaCreator.active) {
+            this.pizzaCreator.handleMouseClick(event);
+            return; // Don't interact with the game world if the modal is open
+        }
+
         const rect = this.canvas.getBoundingClientRect();
+        const mousePos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+
+        // Temp button click handler
+        if (mousePos.x > 10 && mousePos.x < 210 && mousePos.y > 10 && mousePos.y < 60) {
+            this.pizzaCreator.open();
+            return;
+        }
+
         const clickPoint: Point = {
             x: event.clientX - rect.left - this.cameraOffset.x,
             y: event.clientY - rect.top - this.cameraOffset.y,
