@@ -2,6 +2,7 @@
 
 export const TILE_WIDTH_HALF = 64;  // Half the width of a tile
 export const TILE_HEIGHT_HALF = 32; // Half the height of a tile
+export const BUILDING_HEIGHT = 64; // The visual height of the building cube
 
 export interface Point {
     x: number;
@@ -21,13 +22,20 @@ export function gridToScreen(col: number, row: number): Point {
 }
 
 /**
- * Converts screen coordinates (x, y) to grid coordinates (row, col).
- * @param x - The x coordinate on the screen.
- * @param y - The y coordinate on the screen.
- * @returns An object with row and col grid coordinates.
+ * Checks if a point is inside a polygon using the ray-casting algorithm.
+ * @param point - The point to check.
+ * @param polygon - An array of points defining the polygon vertices in order.
+ * @returns True if the point is inside the polygon, false otherwise.
  */
-export function screenToGrid(x: number, y: number): Point {
-    const row = (y / TILE_HEIGHT_HALF - x / TILE_WIDTH_HALF) / 2;
-    const col = (x / TILE_WIDTH_HALF + y / TILE_HEIGHT_HALF) / 2;
-    return { x: col, y: row };
+export function isPointInPolygon(point: Point, polygon: Point[]): boolean {
+    let isInside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].x, yi = polygon[i].y;
+        const xj = polygon[j].x, yj = polygon[j].y;
+
+        const intersect = ((yi > point.y) !== (yj > point.y))
+            && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+        if (intersect) isInside = !isInside;
+    }
+    return isInside;
 }
