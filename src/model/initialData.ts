@@ -2,16 +2,23 @@
 import { GameState } from './GameState';
 import { Restaurant } from './Restaurant';
 import { Pizza } from './Pizza';
-import { Employee } from './Employee';
 import { Ingredient } from './Ingredient';
-import { EmployeeRole, IngredientType, TileType } from './enums';
+import { EmployeeRole, TileType } from './enums';
 import { GameMap } from '../Map';
+import { INGREDIENT_DEFINITIONS } from './ingredientDefinitions';
+import { Employee } from './Employee';
 
 export function loadInitialData(gameState: GameState, map: GameMap): void {
-  // --- Ingredients ---
-  const tomatoSauce = new Ingredient('Tomato Sauce', 0.5, IngredientType.Sauce);
-  const cheese = new Ingredient('Cheese', 1, IngredientType.Cheese);
-  const pepperoni = new Ingredient('Pepperoni', 1.5, IngredientType.Topping);
+  // --- Register all ingredients in the central registry ---
+  INGREDIENT_DEFINITIONS.forEach((def) => {
+    const ingredient = new Ingredient(def.id, def.name, def.baseCost, def.type);
+    gameState.registerIngredient(ingredient);
+  });
+
+  // --- Get ingredients from registry ---
+  const tomatoSauce = gameState.getIngredient('tomato_sauce')!;
+  const cheese = gameState.getIngredient('cheese')!;
+  const pepperoni = gameState.getIngredient('pepperoni')!;
 
   // --- Pizzas ---
   const margherita = new Pizza('Margherita', [tomatoSauce, cheese], 8);
@@ -28,19 +35,21 @@ export function loadInitialData(gameState: GameState, map: GameMap): void {
   // Add the first restaurant to the game state
   gameState.addRestaurant(initialRestaurant);
 
-  // Define a location for the initial restaurant
-  const initialLocation = { row: 5, col: 5 };
+  // Znajdź pierwszą dostępną parcelę typu BuildingForSale i "kup" ją dla restauracji
+  // Uwaga: nie ingerujemy w kasę gracza przy inicjalizacji — to tylko setup startowy.
+  let placed = false;
+  for (let r = 0; r < map.rows && !placed; r++) {
+    for (let c = 0; c < map.cols && !placed; c++) {
+      const tile = map.getTile(r, c);
+      if (tile && tile.type === TileType.BuildingForSale) {
+        map.purchaseBuilding(r, c, initialRestaurant.id);
+        placed = true;
+      }
+    }
+  }
 
-  // Manually update the map tile to place the owned building
-  // This bypasses the purchase logic for initial setup
-  const grid = (map as any).grid; // Accessing private grid for setup
-  if (grid[initialLocation.row] && grid[initialLocation.row][initialLocation.col]) {
-      grid[initialLocation.row][initialLocation.col] = {
-          type: TileType.BuildingOwned,
-          restaurantId: initialRestaurant.id,
-      };
-  } else {
-      console.error(`Initial restaurant location (${initialLocation.row},${initialLocation.col}) is invalid.`);
+  if (!placed) {
+    console.error('Nie znaleziono żadnego budynku na sprzedaż do ustawienia startowej restauracji.');
   }
 
   console.log('Initial data loaded.', gameState);

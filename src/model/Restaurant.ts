@@ -5,7 +5,7 @@ import { Employee } from './Employee';
 
 export class Restaurant {
   public id: string;
-  public inventory: Map<Ingredient, number> = new Map();
+  public inventory: Map<string, number> = new Map(); // Key is ingredient ID
   public menu: Pizza[] = [];
   public employees: Employee[] = [];
   public furniture: any[] = []; // Placeholder for furniture system
