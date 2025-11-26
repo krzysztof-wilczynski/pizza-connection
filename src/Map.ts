@@ -9,6 +9,7 @@ export enum TileType {
 export interface Tile {
     type: TileType;
     price?: number;
+    restaurantId?: string;
 }
 
 export class GameMap {
