@@ -5,7 +5,6 @@ import { gridToScreen, isPointInPolygon, Point, TILE_WIDTH_HALF, TILE_HEIGHT_HAL
 import { TileType } from './model/enums';
 import { UIManager } from './UIManager';
 import { Restaurant } from './model/Restaurant';
-import { v4 as uuidv4 } from 'uuid';
 import { Tile } from './model/Tile';
 import { PizzaCreator } from './PizzaCreator';
 
@@ -55,7 +54,8 @@ export class CityView {
                     } else if (tile.type === TileType.BuildingOwned) {
                         this.drawBuilding(screenPos.x, screenPos.y, '#4CAF50');
                     } else {
-                        this.drawTile(screenPos.x, screenPos.y);
+                         // Draw pavement/road tiles
+                        this.drawTile(screenPos.x, screenPos.y, tile.type === TileType.Road ? '#444' : '#666');
                     }
                 }
             }
@@ -64,13 +64,15 @@ export class CityView {
         this.ctx.restore();
     }
 
-    private drawTile(x: number, y: number): void {
+    private drawTile(x: number, y: number, color: string): void {
         this.ctx.beginPath();
         this.ctx.moveTo(x, y);
         this.ctx.lineTo(x + TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
         this.ctx.lineTo(x, y + TILE_HEIGHT_HALF * 2);
         this.ctx.lineTo(x - TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
         this.ctx.closePath();
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
         this.ctx.strokeStyle = '#555';
         this.ctx.stroke();
     }
@@ -78,6 +80,7 @@ export class CityView {
     private drawBuilding(x: number, y: number, color: string): void {
         const topY = y - BUILDING_HEIGHT;
 
+        // Top face
         this.ctx.fillStyle = color;
         this.ctx.beginPath();
         this.ctx.moveTo(x, topY);
@@ -88,6 +91,7 @@ export class CityView {
         this.ctx.fill();
         this.ctx.stroke();
 
+        // Left face
         this.ctx.fillStyle = '#868686';
         this.ctx.beginPath();
         this.ctx.moveTo(x - TILE_WIDTH_HALF, topY + TILE_HEIGHT_HALF);
@@ -98,6 +102,7 @@ export class CityView {
         this.ctx.fill();
         this.ctx.stroke();
 
+        // Right face
         this.ctx.fillStyle = '#c4c4c4';
         this.ctx.beginPath();
         this.ctx.moveTo(x + TILE_WIDTH_HALF, topY + TILE_HEIGHT_HALF);
@@ -109,7 +114,7 @@ export class CityView {
         this.ctx.stroke();
     }
 
-    public handleMouseClick(event: MouseEvent, changeView: (newView: any) => void): void {
+    public handleMouseClick(event: MouseEvent, changeView: (newView: Tile) => void): void {
         if (this.pizzaCreator.active) {
             this.pizzaCreator.handleMouseClick(event);
             return;
@@ -144,24 +149,12 @@ export class CityView {
                     ];
 
                     if (isPointInPolygon(clickPoint, topFace)) {
-                        if (tile.type === TileType.BuildingForSale && tile.price) {
+                        if (tile.type === TileType.BuildingForSale) {
                             this.uiManager.showPurchasePanel(tile.price, () => {
-                                if (this.gameState.playerMoney >= tile.price!) {
-                                    this.gameState.playerMoney -= tile.price!;
-                                    tile.type = TileType.BuildingOwned;
-
-                                    const newRestaurant: Restaurant = {
-                                        id: uuidv4(),
-                                        location: { row, col },
-                                        furniture: [],
-                                        menu: [],
-                                        employees: [],
-                                        stats: { reputation: 10, dailyIncome: 0 }
-                                    };
-
+                                if (this.gameState.player.spendMoney(tile.price)) {
+                                    const newRestaurant = new Restaurant();
                                     this.gameState.addRestaurant(newRestaurant);
-                                    tile.restaurantId = newRestaurant.id;
-
+                                    this.map.purchaseBuilding(row, col, newRestaurant.id);
                                     this.uiManager.hidePurchasePanel();
                                 } else {
                                     alert("Not enough money!");

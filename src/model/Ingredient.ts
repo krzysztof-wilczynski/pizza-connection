@@ -1,8 +1,9 @@
-// src/model/Ingredient.ts
 import { IngredientType } from './enums';
 
-export interface Ingredient {
-    name: string;
-    cost: number;
-    type: IngredientType;
+export class Ingredient {
+  constructor(
+    public name: string,
+    public baseCost: number,
+    public type: IngredientType
+  ) {}
 }
