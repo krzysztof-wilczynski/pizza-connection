@@ -1,16 +1,6 @@
 // src/Map.ts
-
-export enum TileType {
-    Empty,
-    BuildingForSale,
-    BuildingOwned,
-}
-
-export interface Tile {
-    type: TileType;
-    price?: number;
-    restaurantId?: string;
-}
+import { TileType } from './model/enums';
+import { Tile } from './model/Tile';
 
 export class GameMap {
     private grid: Tile[][];
