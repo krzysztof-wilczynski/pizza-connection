@@ -1,14 +1,17 @@
 import { BUILDING_HEIGHT, gridToScreen, isPointInPolygon, Point, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
 import { GameMap, TileType } from './Map';
-import { Player } from './Player';
 import { UIManager } from './UIManager';
+import { GameState } from './model/GameState';
+import { Restaurant } from './model/Restaurant';
+import { v4 as uuidv4 } from 'uuid';
+import { loadInitialData } from './model/initialData';
 
 export class Game {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private lastTime: number = 0;
     private map: GameMap;
-    private player: Player;
+    private gameState: GameState;
     private cameraOffset = { x: 0, y: 0 };
     private uiManager: UIManager;
 
@@ -20,7 +23,8 @@ export class Game {
         }
         this.ctx = context;
         this.map = new GameMap(10, 10);
-        this.player = new Player(2500000); // Starting money
+        this.gameState = GameState.getInstance();
+        loadInitialData(this.gameState, this.map);
         this.uiManager = new UIManager();
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -138,6 +142,43 @@ export class Game {
             y: event.clientY - rect.top - this.cameraOffset.y,
         };
 
+        const gridPos = screenToGrid(screenX, screenY);
+        const col = Math.floor(gridPos.x);
+        const row = Math.floor(gridPos.y);
+
+        if (row >= 0 && row < this.map.rows && col >= 0 && col < this.map.cols) {
+            const tile = this.map.getTile(row, col);
+            if (tile && tile.type === TileType.BuildingForSale && tile.price) {
+                this.uiManager.showPurchasePanel(tile.price, () => {
+                    if (this.gameState.playerMoney >= tile.price!) {
+                        this.gameState.playerMoney -= tile.price!;
+                        tile.type = TileType.BuildingOwned;
+
+                        const newRestaurant: Restaurant = {
+                            id: uuidv4(),
+                            location: { row, col },
+                            furniture: [],
+                            menu: [],
+                            employees: [],
+                            stats: { reputation: 10, dailyIncome: 0 }
+                        };
+
+                        this.gameState.addRestaurant(newRestaurant);
+                        tile.restaurantId = newRestaurant.id;
+
+                        this.uiManager.hidePurchasePanel();
+                        console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.gameState.playerMoney}`);
+                        console.log('New restaurant created:', newRestaurant);
+                    } else {
+                        alert("Not enough money!");
+                    }
+                });
+            } else if (tile && tile.type === TileType.BuildingOwned) {
+                const restaurant = this.gameState.restaurants.find(r => r.id === tile.restaurantId);
+                if (restaurant) {
+                    console.log('Clicked on owned restaurant:', restaurant);
+                    alert(`Restaurant Details:\nID: ${restaurant.id}\nLocation: (${restaurant.location.row}, ${restaurant.location.col})`);
+                }
         // Iterate from front to back to respect Z-order
         for (let row = this.map.rows - 1; row >= 0; row--) {
             for (let col = this.map.cols - 1; col >= 0; col--) {
