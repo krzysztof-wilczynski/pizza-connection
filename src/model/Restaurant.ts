@@ -1,16 +1,16 @@
-// src/model/Restaurant.ts
-import { PizzaRecipe } from './PizzaRecipe';
+import { v4 as uuidv4 } from 'uuid';
+import { Ingredient } from './Ingredient';
+import { Pizza } from './Pizza';
 import { Employee } from './Employee';
-import { Furniture } from './Furniture';
 
-export interface Restaurant {
-    id: string; // UUID
-    location: { row: number; col: number };
-    furniture: Furniture[];
-    menu: PizzaRecipe[];
-    employees: Employee[];
-    stats: {
-        reputation: number;
-        dailyIncome: number;
-    };
+export class Restaurant {
+  public id: string;
+  public inventory: Map<Ingredient, number> = new Map();
+  public menu: Pizza[] = [];
+  public employees: Employee[] = [];
+  public furniture: any[] = []; // Placeholder for furniture system
+
+  constructor() {
+    this.id = uuidv4();
+  }
 }

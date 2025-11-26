@@ -1,12 +1,24 @@
-// src/model/enums.ts
+export enum IngredientType {
+  Dough,
+  Sauce,
+  Cheese,
+  Topping,
+}
 
-export enum GameView {
-    City,
-    Interior,
+export enum EmployeeRole {
+  Chef,
+  Waiter,
 }
 
 export enum TileType {
-    Empty,
-    BuildingForSale,
-    BuildingOwned,
+  Empty,
+  BuildingForSale,
+  BuildingOwned,
+  Road,
+  Pavement,
+}
+
+export enum GameView {
+  City,
+  Interior,
 }

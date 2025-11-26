@@ -1,9 +1,10 @@
-// src/model/Employee.ts
 import { EmployeeRole } from './enums';
 
-export interface Employee {
-    name: string;
-    role: EmployeeRole;
-    skillLevel: number;
-    salary: number;
+export class Employee {
+  constructor(
+    public name: string,
+    public role: EmployeeRole,
+    public skillLevel: number,
+    public salary: number
+  ) {}
 }

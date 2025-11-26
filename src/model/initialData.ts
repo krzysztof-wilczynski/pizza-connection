@@ -1,76 +1,47 @@
 // src/model/initialData.ts
 import { GameState } from './GameState';
 import { Restaurant } from './Restaurant';
-import { PizzaRecipe } from './PizzaRecipe';
+import { Pizza } from './Pizza';
 import { Employee } from './Employee';
 import { Ingredient } from './Ingredient';
-import { EmployeeRole, IngredientType } from './enums';
-import { v4 as uuidv4 } from 'uuid';
-import { GameMap, TileType } from '../Map'; // Correctly import GameMap and TileType
-
-// --- Ingredients ---
-const tomatoSauce: Ingredient = { name: 'Tomato Sauce', cost: 0.5, type: IngredientType.SAUCE };
-const cheese: Ingredient = { name: 'Cheese', cost: 1, type: IngredientType.CHEESE };
-const pepperoni: Ingredient = { name: 'Pepperoni', cost: 1.5, type: IngredientType.MEAT };
-const mushrooms: Ingredient = { name: 'Mushrooms', cost: 0.8, type: IngredientType.VEGETABLE };
-const olives: Ingredient = { name: 'Olives', cost: 0.7, type: IngredientType.VEGETABLE };
-
-// --- Pizza Recipes ---
-const margherita: PizzaRecipe = {
-    name: 'Margherita',
-    ingredients: [tomatoSauce, cheese],
-    price: 8
-};
-
-const pepperoniPizza: PizzaRecipe = {
-    name: 'Pepperoni Pizza',
-    ingredients: [tomatoSauce, cheese, pepperoni],
-    price: 12
-};
-
-// --- Employees ---
-const chefGordon: Employee = {
-    name: 'Gordon Ramsy',
-    role: EmployeeRole.CHEF,
-    skillLevel: 5,
-    salary: 2000
-};
-
-// --- Initial Restaurant ---
-const initialRestaurant: Restaurant = {
-    id: uuidv4(),
-    location: { row: 5, col: 5 }, // Example location, ensure this tile is empty
-    furniture: [],
-    menu: [margherita, pepperoniPizza],
-    employees: [chefGordon],
-    stats: { reputation: 15, dailyIncome: 0 }
-};
+import { EmployeeRole, IngredientType, TileType } from './enums';
+import { GameMap } from '../Map';
 
 export function loadInitialData(gameState: GameState, map: GameMap): void {
-    // Note: The player starts with enough money to buy a building.
-    // The initial restaurant is now created when a building is purchased for the first time.
-    // This function will only set up the initial money.
-    // We can later extend it to pre-populate the map with an owned building if needed.
+  // --- Ingredients ---
+  const tomatoSauce = new Ingredient('Tomato Sauce', 0.5, IngredientType.Sauce);
+  const cheese = new Ingredient('Cheese', 1, IngredientType.Cheese);
+  const pepperoni = new Ingredient('Pepperoni', 1.5, IngredientType.Topping);
 
-    gameState.setInitialMoney(2500000);
+  // --- Pizzas ---
+  const margherita = new Pizza('Margherita', [tomatoSauce, cheese], 8);
+  const pepperoniPizza = new Pizza('Pepperoni Pizza', [tomatoSauce, cheese, pepperoni], 12);
 
-    /*
-    // This part is commented out, as the current game flow is to BUY a building first.
-    // If the game were to start with a pre-owned restaurant, we would uncomment this.
+  // --- Employees ---
+  const chefGordon = new Employee('Gordon', EmployeeRole.Chef, 5, 2000);
 
-    // Add the first restaurant to the game state
-    gameState.addRestaurant(initialRestaurant);
+  // --- Initial Restaurant ---
+  const initialRestaurant = new Restaurant();
+  initialRestaurant.menu.push(margherita, pepperoniPizza);
+  initialRestaurant.employees.push(chefGordon);
 
-    // Update the map tile to link it to the restaurant
-    const { row, col } = initialRestaurant.location;
-    const tile = map.getTile(row, col);
-    if (tile) {
-        tile.type = TileType.BuildingOwned;
-        tile.restaurantId = initialRestaurant.id;
-    } else {
-        console.error(`Initial restaurant location (${row},${col}) is invalid.`);
-    }
-    */
+  // Add the first restaurant to the game state
+  gameState.addRestaurant(initialRestaurant);
 
-    console.log('Initial data loaded (player money set).', gameState);
+  // Define a location for the initial restaurant
+  const initialLocation = { row: 5, col: 5 };
+
+  // Manually update the map tile to place the owned building
+  // This bypasses the purchase logic for initial setup
+  const grid = (map as any).grid; // Accessing private grid for setup
+  if (grid[initialLocation.row] && grid[initialLocation.row][initialLocation.col]) {
+      grid[initialLocation.row][initialLocation.col] = {
+          type: TileType.BuildingOwned,
+          restaurantId: initialRestaurant.id,
+      };
+  } else {
+      console.error(`Initial restaurant location (${initialLocation.row},${initialLocation.col}) is invalid.`);
+  }
+
+  console.log('Initial data loaded.', gameState);
 }
