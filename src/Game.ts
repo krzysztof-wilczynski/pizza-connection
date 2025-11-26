@@ -1,3 +1,5 @@
+import { BUILDING_HEIGHT, gridToScreen, isPointInPolygon, Point, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
+import { GameMap, TileType } from './Map';
 import { gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
 import { GameMap, Tile, TileType } from './Map';
 import { Player } from './Player';
@@ -559,5 +561,55 @@ export class Game {
         const rect = this.canvas.getBoundingClientRect();
         this.mousePosition.x = event.clientX - rect.left;
         this.mousePosition.y = event.clientY - rect.top;
+        // Iterate from front to back to respect Z-order
+        for (let row = this.map.rows - 1; row >= 0; row--) {
+            for (let col = this.map.cols - 1; col >= 0; col--) {
+                const tile = this.map.getTile(row, col);
+
+                if (tile && (tile.type === TileType.BuildingForSale || tile.type === TileType.BuildingOwned)) {
+                    const screenPos = gridToScreen(col, row);
+                    const topY = screenPos.y - BUILDING_HEIGHT;
+
+                    // Define polygons for the building's visible faces
+                    const topFace: Point[] = [
+                        { x: screenPos.x, y: topY },
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                    ];
+
+                    const leftFace: Point[] = [
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x, y: screenPos.y + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: screenPos.y + TILE_HEIGHT_HALF },
+                    ];
+
+                    const rightFace: Point[] = [
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x, y: screenPos.y + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: screenPos.y + TILE_HEIGHT_HALF },
+                    ];
+
+                    if (isPointInPolygon(clickPoint, topFace) || isPointInPolygon(clickPoint, leftFace) || isPointInPolygon(clickPoint, rightFace)) {
+                        if (tile.type === TileType.BuildingForSale && tile.price) {
+                            this.uiManager.showPurchasePanel(tile.price, () => {
+                                if (this.player.canAfford(tile.price!)) {
+                                    this.player.spendMoney(tile.price!);
+                                    tile.type = TileType.BuildingOwned;
+                                    this.uiManager.hidePurchasePanel();
+                                    console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.player.getMoney()}`);
+                                } else {
+                                    alert("Not enough money!");
+                                }
+                            });
+                        }
+                        // If we found a clicked building, we can stop checking
+                        return;
+                    }
+                }
+            }
+        }
     }
 }
