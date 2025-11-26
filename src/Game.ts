@@ -61,6 +61,54 @@ import { GameState } from './model/GameState';
 import { Restaurant } from './model/Restaurant';
 import { v4 as uuidv4 } from 'uuid';
 import { loadInitialData } from './model/initialData';
+import { Furniture, PlacedFurniture } from './Furniture';
+
+export enum GameState {
+    City,
+    Interior,
+}
+
+const BACK_BUTTON_WIDTH = 180;
+const BACK_BUTTON_HEIGHT = 50;
+const BACK_BUTTON_MARGIN = 20;
+
+const FURNITURE_PANEL_WIDTH = 250;
+const FURNITURE_ITEM_HEIGHT = 60;
+const FURNITURE_ITEM_MARGIN = 10;
+
+const AVAILABLE_FURNITURE: Furniture[] = [
+    { id: 1, name: 'Stolik', width: 2, height: 1, color: '#8B4513' },
+    { id: 2, name: 'Piec', width: 2, height: 2, color: '#2F4F4F' },
+    { id: 3, name: 'Lada', width: 3, height: 1, color: '#A0522D' },
+];
+import { GameState } from './model/GameState';
+import { Restaurant } from './model/Restaurant';
+import { v4 as uuidv4 } from 'uuid';
+import { loadInitialData } from './model/initialData';
+import { GameState } from './model/GameState';
+import { Restaurant } from './model/Restaurant';
+import { v4 as uuidv4 } from 'uuid';
+import { loadInitialData } from './model/initialData';
+import { Furniture, PlacedFurniture } from './Furniture';
+
+export enum GameState {
+    City,
+    Interior,
+}
+
+const BACK_BUTTON_WIDTH = 180;
+const BACK_BUTTON_HEIGHT = 50;
+const BACK_BUTTON_MARGIN = 20;
+
+const FURNITURE_PANEL_WIDTH = 250;
+const FURNITURE_ITEM_HEIGHT = 60;
+const FURNITURE_ITEM_MARGIN = 10;
+
+const AVAILABLE_FURNITURE: Furniture[] = [
+    { id: 1, name: 'Stolik', width: 2, height: 1, color: '#8B4513' },
+    { id: 2, name: 'Piec', width: 2, height: 2, color: '#2F4F4F' },
+    { id: 3, name: 'Lada', width: 3, height: 1, color: '#A0522D' },
+];
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -352,6 +400,10 @@ export class Game {
             x: event.clientX - rect.left - this.cameraOffset.x,
             y: event.clientY - rect.top - this.cameraOffset.y,
         };
+        const clickPoint: Point = {
+            x: event.clientX - rect.left - this.cameraOffset.x,
+            y: event.clientY - rect.top - this.cameraOffset.y,
+        };
 
         const gridPos = screenToGrid(screenX, screenY);
         const col = Math.floor(gridPos.x);
@@ -427,6 +479,366 @@ export class Game {
             const tile = this.map.getTile(row, col);
             if (tile && tile.type === TileType.BuildingForSale && tile.price) {
                 this.uiManager.showPurchasePanel(tile.price, () => {
+                    if (this.gameState.playerMoney >= tile.price!) {
+                        this.gameState.playerMoney -= tile.price!;
+                        tile.type = TileType.BuildingOwned;
+
+                        const newRestaurant: Restaurant = {
+                            id: uuidv4(),
+                            location: { row, col },
+                            furniture: [],
+                            menu: [],
+                            employees: [],
+                            stats: { reputation: 10, dailyIncome: 0 }
+                        };
+
+                        this.gameState.addRestaurant(newRestaurant);
+                        tile.restaurantId = newRestaurant.id;
+
+                        this.uiManager.hidePurchasePanel();
+                        console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.gameState.playerMoney}`);
+                        console.log('New restaurant created:', newRestaurant);
+                    } else {
+                        alert("Not enough money!");
+                    }
+                });
+            } else if (tile && tile.type === TileType.BuildingOwned) {
+                const restaurant = this.gameState.restaurants.find(r => r.id === tile.restaurantId);
+                if (restaurant) {
+                    console.log('Clicked on owned restaurant:', restaurant);
+                    alert(`Restaurant Details:\nID: ${restaurant.id}\nLocation: (${restaurant.location.row}, ${restaurant.location.col})`);
+                }
+                    if (this.gameState.playerMoney >= tile.price!) {
+                        this.gameState.playerMoney -= tile.price!;
+                        tile.type = TileType.BuildingOwned;
+
+                        const newRestaurant: Restaurant = {
+                            id: uuidv4(),
+                            location: { row, col },
+                            furniture: [],
+                            menu: [],
+                            employees: [],
+                            stats: { reputation: 10, dailyIncome: 0 }
+                        };
+
+                        this.gameState.addRestaurant(newRestaurant);
+                        tile.restaurantId = newRestaurant.id;
+
+                        this.uiManager.hidePurchasePanel();
+                        console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.gameState.playerMoney}`);
+                        console.log('New restaurant created:', newRestaurant);
+                    } else {
+                        alert("Not enough money!");
+                    }
+                });
+            } else if (tile && tile.type === TileType.BuildingOwned) {
+                const restaurant = this.gameState.restaurants.find(r => r.id === tile.restaurantId);
+                if (restaurant) {
+                    console.log('Clicked on owned restaurant:', restaurant);
+                    alert(`Restaurant Details:\nID: ${restaurant.id}\nLocation: (${restaurant.location.row}, ${restaurant.location.col})`);
+                }
+        const gridPos = screenToGrid(screenX, screenY);
+        const col = Math.floor(gridPos.x);
+        const row = Math.floor(gridPos.y);
+
+        if (row >= 0 && row < this.map.rows && col >= 0 && col < this.map.cols) {
+            const tile = this.map.getTile(row, col);
+            if (tile) {
+                if (tile.type === TileType.BuildingForSale && tile.price) {
+                    this.uiManager.showPurchasePanel(tile.price, () => {
+                        if (this.player.canAfford(tile.price!)) {
+                            this.player.spendMoney(tile.price!);
+                            tile.type = TileType.BuildingOwned;
+                            this.uiManager.hidePurchasePanel();
+                            console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.player.getMoney()}`);
+                        } else {
+                            alert("Not enough money!");
+                        }
+                    });
+                } else if (tile.type === TileType.BuildingOwned) {
+                    this.activeBuilding = tile;
+                    this.currentState = GameState.Interior;
+                    console.log(`Entering building at (${row}, ${col})`);
+                }
+            }
+        }
+    }
+
+    private handleInteriorMouseClick(event: MouseEvent): void {
+        const rect = this.canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        const buttonX = BACK_BUTTON_MARGIN;
+        const buttonY = BACK_BUTTON_MARGIN;
+
+        // Check if the back button was clicked
+        if (
+            clickX >= buttonX &&
+            clickX <= buttonX + BACK_BUTTON_WIDTH &&
+            clickY >= buttonY &&
+            clickY <= buttonY + BACK_BUTTON_HEIGHT
+        ) {
+            this.currentState = GameState.City;
+            this.activeBuilding = null;
+            this.placedFurniture = [];
+            this.selectedFurniture = null;
+            console.log("Returning to city view.");
+            return;
+        }
+
+        // Check if a furniture item from the panel was clicked
+        const panelX = this.canvas.width - FURNITURE_PANEL_WIDTH;
+        if (clickX >= panelX) {
+            for (let i = 0; i < AVAILABLE_FURNITURE.length; i++) {
+                const item = AVAILABLE_FURNITURE[i];
+                const itemY = (FURNITURE_ITEM_HEIGHT + FURNITURE_ITEM_MARGIN) * i + FURNITURE_ITEM_MARGIN;
+                if (
+                    clickY >= itemY &&
+                    clickY <= itemY + FURNITURE_ITEM_HEIGHT
+                ) {
+                    this.selectedFurniture = { ...item }; // Create a copy
+                    console.log(`Selected furniture: ${this.selectedFurniture.name}`);
+                    return;
+                }
+            }
+        }
+
+        // If we are in "placing furniture" mode
+        if (this.selectedFurniture) {
+             // Right click to cancel placing
+            if (event.button === 2) {
+                this.selectedFurniture = null;
+                console.log("Furniture placement cancelled.");
+                return;
+            }
+
+            const interiorOffsetX = this.canvas.width / 2;
+            const interiorOffsetY = this.canvas.height / 4;
+            const screenX = this.mousePosition.x - interiorOffsetX;
+            const screenY = this.mousePosition.y - interiorOffsetY;
+            const gridPos = screenToGrid(screenX, screenY);
+            const gridX = Math.floor(gridPos.x);
+            const gridY = Math.floor(gridPos.y);
+
+            if (this.isPositionValid(gridX, gridY, this.selectedFurniture)) {
+                const newFurniture: PlacedFurniture = {
+                    ...this.selectedFurniture,
+                    gridX,
+                    gridY,
+                };
+                this.placedFurniture.push(newFurniture);
+                console.log(`Placed ${newFurniture.name} at (${gridX}, ${gridY})`);
+                this.selectedFurniture = null; // Exit placement mode
+            } else {
+                console.log("Cannot place furniture here.");
+                // Optionally, provide visual feedback like a screen shake or a sound
+            }
+            return;
+        }
+    }
+
+    private isPositionValid(gridX: number, gridY: number, furniture: Furniture): boolean {
+        // Check bounds
+        if (gridX < 0 || gridY < 0 || gridX + furniture.width > 10 || gridY + furniture.height > 10) {
+            return false;
+        }
+
+        // Check for collisions with other furniture
+        for (const placed of this.placedFurniture) {
+            if (
+                gridX < placed.gridX + placed.width &&
+                gridX + furniture.width > placed.gridX &&
+                gridY < placed.gridY + placed.height &&
+                gridY + furniture.height > placed.gridY
+            ) {
+                return false; // Collision detected
+            }
+        }
+
+        return true;
+    }
+
+    private handleMouseMove(event: MouseEvent): void {
+        if (this.currentState !== GameState.Interior) {
+            return;
+        }
+        const rect = this.canvas.getBoundingClientRect();
+        this.mousePosition.x = event.clientX - rect.left;
+        this.mousePosition.y = event.clientY - rect.top;
+        // Iterate from front to back to respect Z-order
+        for (let row = this.map.rows - 1; row >= 0; row--) {
+            for (let col = this.map.cols - 1; col >= 0; col--) {
+                const tile = this.map.getTile(row, col);
+
+                if (tile && (tile.type === TileType.BuildingForSale || tile.type === TileType.BuildingOwned)) {
+                    const screenPos = gridToScreen(col, row);
+                    const topY = screenPos.y - BUILDING_HEIGHT;
+
+                    // Define polygons for the building's visible faces
+                    const topFace: Point[] = [
+                        { x: screenPos.x, y: topY },
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                    ];
+
+                    const leftFace: Point[] = [
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x, y: screenPos.y + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x - TILE_WIDTH_HALF, y: screenPos.y + TILE_HEIGHT_HALF },
+                    ];
+
+                    const rightFace: Point[] = [
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: topY + TILE_HEIGHT_HALF },
+                        { x: screenPos.x, y: topY + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x, y: screenPos.y + TILE_HEIGHT_HALF * 2 },
+                        { x: screenPos.x + TILE_WIDTH_HALF, y: screenPos.y + TILE_HEIGHT_HALF },
+                    ];
+
+                    if (isPointInPolygon(clickPoint, topFace) || isPointInPolygon(clickPoint, leftFace) || isPointInPolygon(clickPoint, rightFace)) {
+                        if (tile.type === TileType.BuildingForSale && tile.price) {
+                            this.uiManager.showPurchasePanel(tile.price, () => {
+                                if (this.player.canAfford(tile.price!)) {
+                                    this.player.spendMoney(tile.price!);
+                                    tile.type = TileType.BuildingOwned;
+                                    this.uiManager.hidePurchasePanel();
+                                    console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.player.getMoney()}`);
+                                } else {
+                                    alert("Not enough money!");
+                                }
+                            });
+                        }
+                        // If we found a clicked building, we can stop checking
+                        return;
+                    }
+                }
+            }
+        }
+            if (tile) {
+                if (tile.type === TileType.BuildingForSale && tile.price) {
+                    this.uiManager.showPurchasePanel(tile.price, () => {
+                        if (this.player.canAfford(tile.price!)) {
+                            this.player.spendMoney(tile.price!);
+                            tile.type = TileType.BuildingOwned;
+                            this.uiManager.hidePurchasePanel();
+                            console.log(`Player bought property at (${row}, ${col}) for $${tile.price}. Remaining money: $${this.player.getMoney()}`);
+                        } else {
+                            alert("Not enough money!");
+                        }
+                    });
+                } else if (tile.type === TileType.BuildingOwned) {
+                    this.activeBuilding = tile;
+                    this.currentState = GameState.Interior;
+                    console.log(`Entering building at (${row}, ${col})`);
+                }
+            }
+        }
+    }
+
+    private handleInteriorMouseClick(event: MouseEvent): void {
+        const rect = this.canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        const buttonX = BACK_BUTTON_MARGIN;
+        const buttonY = BACK_BUTTON_MARGIN;
+
+        // Check if the back button was clicked
+        if (
+            clickX >= buttonX &&
+            clickX <= buttonX + BACK_BUTTON_WIDTH &&
+            clickY >= buttonY &&
+            clickY <= buttonY + BACK_BUTTON_HEIGHT
+        ) {
+            this.currentState = GameState.City;
+            this.activeBuilding = null;
+            this.placedFurniture = [];
+            this.selectedFurniture = null;
+            console.log("Returning to city view.");
+            return;
+        }
+
+        // Check if a furniture item from the panel was clicked
+        const panelX = this.canvas.width - FURNITURE_PANEL_WIDTH;
+        if (clickX >= panelX) {
+            for (let i = 0; i < AVAILABLE_FURNITURE.length; i++) {
+                const item = AVAILABLE_FURNITURE[i];
+                const itemY = (FURNITURE_ITEM_HEIGHT + FURNITURE_ITEM_MARGIN) * i + FURNITURE_ITEM_MARGIN;
+                if (
+                    clickY >= itemY &&
+                    clickY <= itemY + FURNITURE_ITEM_HEIGHT
+                ) {
+                    this.selectedFurniture = { ...item }; // Create a copy
+                    console.log(`Selected furniture: ${this.selectedFurniture.name}`);
+                    return;
+                }
+            }
+        }
+
+        // If we are in "placing furniture" mode
+        if (this.selectedFurniture) {
+             // Right click to cancel placing
+            if (event.button === 2) {
+                this.selectedFurniture = null;
+                console.log("Furniture placement cancelled.");
+                return;
+            }
+
+            const interiorOffsetX = this.canvas.width / 2;
+            const interiorOffsetY = this.canvas.height / 4;
+            const screenX = this.mousePosition.x - interiorOffsetX;
+            const screenY = this.mousePosition.y - interiorOffsetY;
+            const gridPos = screenToGrid(screenX, screenY);
+            const gridX = Math.floor(gridPos.x);
+            const gridY = Math.floor(gridPos.y);
+
+            if (this.isPositionValid(gridX, gridY, this.selectedFurniture)) {
+                const newFurniture: PlacedFurniture = {
+                    ...this.selectedFurniture,
+                    gridX,
+                    gridY,
+                };
+                this.placedFurniture.push(newFurniture);
+                console.log(`Placed ${newFurniture.name} at (${gridX}, ${gridY})`);
+                this.selectedFurniture = null; // Exit placement mode
+            } else {
+                console.log("Cannot place furniture here.");
+                // Optionally, provide visual feedback like a screen shake or a sound
+            }
+            return;
+        }
+    }
+
+    private isPositionValid(gridX: number, gridY: number, furniture: Furniture): boolean {
+        // Check bounds
+        if (gridX < 0 || gridY < 0 || gridX + furniture.width > 10 || gridY + furniture.height > 10) {
+            return false;
+        }
+
+        // Check for collisions with other furniture
+        for (const placed of this.placedFurniture) {
+            if (
+                gridX < placed.gridX + placed.width &&
+                gridX + furniture.width > placed.gridX &&
+                gridY < placed.gridY + placed.height &&
+                gridY + furniture.height > placed.gridY
+            ) {
+                return false; // Collision detected
+            }
+        }
+
+        return true;
+    }
+
+    private handleMouseMove(event: MouseEvent): void {
+        if (this.currentState !== GameState.Interior) {
+            return;
+        }
+        const rect = this.canvas.getBoundingClientRect();
+        this.mousePosition.x = event.clientX - rect.left;
+        this.mousePosition.y = event.clientY - rect.top;
                     if (this.gameState.playerMoney >= tile.price!) {
                         this.gameState.playerMoney -= tile.price!;
                         tile.type = TileType.BuildingOwned;
