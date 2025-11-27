@@ -6,6 +6,7 @@ import { Restaurant } from './model/Restaurant';
 import { AssetManager } from './AssetManager';
 import { GameState } from './model/GameState';
 import { Employee } from './model/Employee';
+import { Customer } from './model/Customer';
 import { EmployeeRole } from './model/enums';
 
 const BACK_BUTTON_WIDTH = 180;
@@ -66,7 +67,7 @@ export class InteriorView {
         }
 
         // Combined Rendering with Z-Sorting
-        const renderList: { type: 'furniture' | 'employee', obj: any, sortDepth: number }[] = [];
+        const renderList: { type: 'furniture' | 'employee' | 'customer', obj: any, sortDepth: number }[] = [];
 
         // Add Furniture
         this.activeRestaurant.furniture.forEach(f => {
@@ -86,6 +87,15 @@ export class InteriorView {
             });
         });
 
+        // Add Customers
+        this.activeRestaurant.customers.forEach(c => {
+            renderList.push({
+                type: 'customer',
+                obj: c,
+                sortDepth: c.gridX + c.gridY
+            });
+        });
+
         // Sort by depth
         renderList.sort((a, b) => a.sortDepth - b.sortDepth);
 
@@ -94,9 +104,12 @@ export class InteriorView {
             if (item.type === 'furniture') {
                 const f = item.obj as Furniture;
                 this.drawFurniture(f.gridX, f.gridY, f);
-            } else {
+            } else if (item.type === 'employee') {
                 const e = item.obj as Employee;
                 this.drawEmployee(e);
+            } else if (item.type === 'customer') {
+                const c = item.obj as Customer;
+                this.drawCustomer(c);
             }
         });
 
@@ -268,6 +281,21 @@ export class InteriorView {
              // Fallback rectangle
              this.ctx.fillStyle = employee.role === EmployeeRole.Chef ? 'white' : 'black';
              this.ctx.fillRect(screenPos.x - 10, screenPos.y - 40, 20, 40);
+        }
+    }
+
+    private drawCustomer(customer: Customer): void {
+        const img = this.assetManager.getAsset(customer.assetKey);
+        const screenPos = gridToScreen(customer.gridX, customer.gridY);
+
+        if (img && img.naturalWidth > 0) {
+            const drawX = screenPos.x - img.naturalWidth / 2;
+            const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
+            this.ctx.drawImage(img, drawX, drawY);
+        } else {
+            // Fallback for customer
+            this.ctx.fillStyle = 'blue';
+            this.ctx.fillRect(screenPos.x - 10, screenPos.y - 40, 20, 40);
         }
     }
 

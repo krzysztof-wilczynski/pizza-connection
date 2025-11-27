@@ -3,6 +3,8 @@ import { Ingredient } from './Ingredient';
 import { Pizza } from './Pizza';
 import { Employee } from './Employee';
 import { Furniture, PlacedFurniture } from './Furniture';
+import { Customer, CustomerState } from './Customer';
+import { GameState } from './GameState';
 
 export class Restaurant {
   public id: string;
@@ -10,14 +12,125 @@ export class Restaurant {
   public menu: Pizza[] = [];
   public employees: Employee[] = [];
   public furniture: PlacedFurniture[] = [];
+  public customers: Customer[] = [];
+  private spawnTimer: number = 0;
+
+  public width: number = 10;
+  public height: number = 10;
 
   constructor() {
     this.id = uuidv4();
   }
 
+  public update(deltaTime: number) {
+    // Spawner
+    this.spawnTimer += deltaTime;
+    if (this.spawnTimer > 5000) { // Every 5 seconds
+      this.spawnTimer = 0;
+      this.trySpawnCustomer();
+    }
+
+    // Update Customers
+    const customersToRemove: string[] = [];
+    this.customers.forEach(customer => {
+      this.updateCustomer(customer, deltaTime, customersToRemove);
+    });
+
+    this.customers = this.customers.filter(c => !customersToRemove.includes(c.id));
+  }
+
+  private trySpawnCustomer() {
+    // Find free chair (furniture type 'dining' and not target of any customer)
+    const diningFurniture = this.furniture.filter(f => f.type === 'dining');
+    const freeChairs = diningFurniture.filter(chair => {
+      // Chair is free if no customer is targeting it
+      // We use a pseudo-ID composed of grid coordinates to identify unique chairs
+      const chairId = this.getFurnitureId(chair);
+      const isTargeted = this.customers.some(c => c.targetFurnitureId === chairId);
+      return !isTargeted;
+    });
+
+    if (freeChairs.length > 0) {
+      const randomChair = freeChairs[Math.floor(Math.random() * freeChairs.length)];
+      // Spawn at entrance (0,0) or some edge. Let's say 0,0 is entrance for now.
+      const newCustomer = new Customer(uuidv4(), 0, 0);
+      newCustomer.targetFurnitureId = this.getFurnitureId(randomChair);
+      this.customers.push(newCustomer);
+    }
+  }
+
+  private updateCustomer(customer: Customer, dt: number, removeList: string[]) {
+    const SPEED = 0.003 * dt; // Adjust speed as needed
+
+    if (customer.state === CustomerState.Arriving) {
+      if (customer.targetFurnitureId !== null) {
+        const targetChair = this.furniture.find(f => this.getFurnitureId(f) === customer.targetFurnitureId);
+        if (targetChair) {
+          // Move towards chair
+          const dx = targetChair.gridX - customer.gridX;
+          const dy = targetChair.gridY - customer.gridY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 0.1) {
+            customer.gridX = targetChair.gridX;
+            customer.gridY = targetChair.gridY;
+            customer.state = CustomerState.Seated;
+          } else {
+            customer.gridX += (dx / dist) * SPEED;
+            customer.gridY += (dy / dist) * SPEED;
+          }
+        } else {
+            // Chair gone? Leave.
+            customer.state = CustomerState.Leaving;
+        }
+      }
+    } else if (customer.state === CustomerState.Seated) {
+      // Order logic
+      if (this.menu.length > 0) {
+        const randomPizza = this.menu[Math.floor(Math.random() * this.menu.length)];
+        customer.order = randomPizza;
+        console.log(`Customer ${customer.id} ordered ${randomPizza.name}`);
+        customer.state = CustomerState.Eating;
+        customer.eatingTimer = 3000; // 3 seconds to eat
+      } else {
+        // No menu, leave
+        customer.state = CustomerState.Leaving;
+      }
+    } else if (customer.state === CustomerState.Eating) {
+      customer.eatingTimer -= dt;
+      if (customer.eatingTimer <= 0) {
+        // Finished eating
+        if (customer.order) {
+            GameState.getInstance().player.addMoney(customer.order.price);
+        }
+        customer.state = CustomerState.Leaving;
+        customer.targetFurnitureId = null; // Free up the chair
+      }
+    } else if (customer.state === CustomerState.Leaving) {
+      // Move to exit (0,0)
+      const targetX = 0;
+      const targetY = 0;
+      const dx = targetX - customer.gridX;
+      const dy = targetY - customer.gridY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 0.1) {
+        removeList.push(customer.id);
+      } else {
+        customer.gridX += (dx / dist) * SPEED;
+        customer.gridY += (dy / dist) * SPEED;
+      }
+    }
+  }
+
+  private getFurnitureId(f: PlacedFurniture): number {
+      // Unique ID based on position (assuming max 100x100 grid)
+      return f.gridX * 1000 + f.gridY;
+  }
+
   public addFurniture(item: Furniture, x: number, y: number): boolean {
     // Boundary check (assuming 10x10 grid based on InteriorView logic)
-    if (x < 0 || y < 0 || x + item.width > 10 || y + item.height > 10) {
+    if (x < 0 || y < 0 || x + item.width > this.width || y + item.height > this.height) {
       return false;
     }
 
