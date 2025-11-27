@@ -1,9 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Ingredient } from './Ingredient';
 import { Pizza } from './Pizza';
 import { Employee } from './Employee';
 import { Furniture, PlacedFurniture } from './Furniture';
-import { Customer, CustomerState } from './Customer';
 import { Customer } from './Customer';
 import { CustomerState, OrderState } from './enums';
 import { Order } from './Order';
@@ -47,16 +45,41 @@ export class Restaurant {
     });
 
     this.customers = this.customers.filter(c => !customersToRemove.includes(c.id));
-
-    // Clean up served orders from system (optional garbage collection if needed, but Employee handles removal)
   }
 
+  // --- Inventory Logic (Przywrócone) ---
+  
+  public hasIngredientsFor(pizza: Pizza): boolean {
+    // Zakładamy uproszczenie: 1 sztuka każdego składnika na pizzę
+    for (const ingredient of pizza.ingredients) {
+        const currentAmount = this.inventory.get(ingredient.id) || 0;
+        if (currentAmount < 1) return false;
+    }
+    return true;
+  }
+
+  public consumeIngredientsFor(pizza: Pizza): void {
+    for (const ingredient of pizza.ingredients) {
+        const currentAmount = this.inventory.get(ingredient.id) || 0;
+        this.inventory.set(ingredient.id, Math.max(0, currentAmount - 1));
+    }
+  }
+
+  public buyIngredient(ingredientId: string, amount: number, cost: number): boolean {
+      const player = GameState.getInstance().player;
+      if (player.spendMoney(cost)) {
+          const current = this.inventory.get(ingredientId) || 0;
+          this.inventory.set(ingredientId, current + amount);
+          return true;
+      }
+      return false;
+  }
+
+  // --- Customer Logic ---
+
   private trySpawnCustomer() {
-    // Find free chair (furniture type 'dining' and not target of any customer)
     const diningFurniture = this.furniture.filter(f => f.type === 'dining');
     const freeChairs = diningFurniture.filter(chair => {
-      // Chair is free if no customer is targeting it
-      // We use a pseudo-ID composed of grid coordinates to identify unique chairs
       const chairId = this.getFurnitureId(chair);
       const isTargeted = this.customers.some(c => c.targetFurnitureId === chairId);
       return !isTargeted;
@@ -64,21 +87,19 @@ export class Restaurant {
 
     if (freeChairs.length > 0) {
       const randomChair = freeChairs[Math.floor(Math.random() * freeChairs.length)];
-      // Spawn at entrance (0,0) or some edge. Let's say 0,0 is entrance for now.
-      const newCustomer = new Customer(uuidv4(), 0, 0);
+      const newCustomer = new Customer(uuidv4(), 0, 0); // Spawn at entrance
       newCustomer.targetFurnitureId = this.getFurnitureId(randomChair);
       this.customers.push(newCustomer);
     }
   }
 
   private updateCustomer(customer: Customer, dt: number, removeList: string[]) {
-    const SPEED = 0.003 * dt; // Adjust speed as needed
+    const SPEED = 0.003 * dt;
 
     if (customer.state === CustomerState.Arriving) {
       if (customer.targetFurnitureId !== null) {
         const targetChair = this.furniture.find(f => this.getFurnitureId(f) === customer.targetFurnitureId);
         if (targetChair) {
-          // Move towards chair
           const dx = targetChair.gridX - customer.gridX;
           const dy = targetChair.gridY - customer.gridY;
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -92,16 +113,14 @@ export class Restaurant {
             customer.gridY += (dy / dist) * SPEED;
           }
         } else {
-            // Chair gone? Leave.
             customer.state = CustomerState.Leaving;
         }
       }
     } else if (customer.state === CustomerState.Seated) {
-      // Order logic
       if (this.menu.length > 0) {
         const randomPizza = this.menu[Math.floor(Math.random() * this.menu.length)];
-        // Create Order
-        const newOrder = new Order(uuidv4(), randomPizza, customer.id, 'Pending', 0);
+        
+        // Fix: Use object literal for Interface
         const newOrder: Order = {
             id: uuidv4(),
             pizza: randomPizza,
@@ -112,28 +131,23 @@ export class Restaurant {
         };
         this.kitchenQueue.push(newOrder);
 
-        customer.order = randomPizza; // Keep reference to what they ordered (optional, but good for UI)
-        console.log(`Customer ${customer.id} ordered ${randomPizza.name} -> Queue size: ${this.kitchenQueue.length}`);
+        customer.order = randomPizza; 
+        console.log(`Customer ${customer.id} ordered ${randomPizza.name}`);
         customer.state = CustomerState.WaitingForFood;
       } else {
-        // No menu, leave
         customer.state = CustomerState.Leaving;
       }
-    } else if (customer.state === CustomerState.WaitingForFood) {
-      // Logic handled by Waiter (or if we want a timeout here)
     } else if (customer.state === CustomerState.Eating) {
       customer.eatingTimer -= dt;
       if (customer.eatingTimer <= 0) {
-        // Finished eating
         if (customer.order) {
-            GameState.getInstance().player.addMoney(customer.order.price);
+            GameState.getInstance().player.addMoney(customer.order.salePrice); // Use salePrice not price
         }
         customer.state = CustomerState.Leaving;
-        customer.targetFurnitureId = null; // Free up the chair
+        customer.targetFurnitureId = null; 
       }
     } else if (customer.state === CustomerState.Leaving) {
-      // Move to exit (0,0)
-      const targetX = 0;
+      const targetX = 0; 
       const targetY = 0;
       const dx = targetX - customer.gridX;
       const dy = targetY - customer.gridY;
@@ -149,19 +163,23 @@ export class Restaurant {
   }
 
   private getFurnitureId(f: PlacedFurniture): number {
-      // Unique ID based on position (assuming max 100x100 grid)
       return f.gridX * 1000 + f.gridY;
   }
 
+  // --- Furniture Logic ---
+
+  public getTile(x: number, y: number): { type: string } | null {
+      // Stub method for collision detection needed by InteriorView
+      if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+      return { type: 'floor' }; // Default to floor for now
+  }
+
   public addFurniture(item: Furniture, x: number, y: number): boolean {
-    // Boundary check (assuming 10x10 grid based on InteriorView logic)
     if (x < 0 || y < 0 || x + item.width > this.width || y + item.height > this.height) {
       return false;
     }
 
-    // Collision check
     for (const placed of this.furniture) {
-      // AABB Collision detection
       if (
         x < placed.gridX + placed.width &&
         x + item.width > placed.gridX &&
@@ -172,7 +190,6 @@ export class Restaurant {
       }
     }
 
-    // Add furniture
     const newFurniture: PlacedFurniture = {
       ...item,
       gridX: x,
