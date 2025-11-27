@@ -32,3 +32,5 @@ export type Tile =
   | BuildingOwnedTile
   | RoadTile
   | PavementTile;
+
+
