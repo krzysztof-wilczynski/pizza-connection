@@ -6,10 +6,9 @@ import { Restaurant } from './model/Restaurant';
 import { AssetManager } from './AssetManager';
 import { GameState } from './model/GameState';
 import { Employee } from './model/Employee';
-import { Customer, CustomerState } from './model/Customer';
-import { EmployeeRole, EmployeeState } from './model/enums';
 import { Customer } from './model/Customer';
-import { EmployeeRole, EmployeeState, CustomerState } from './model/enums';
+import { EmployeeRole, EmployeeState, CustomerState, OrderState } from './model/enums';
+import { INGREDIENT_DEFINITIONS } from './model/ingredientDefinitions';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
@@ -20,9 +19,13 @@ const FURNITURE_ITEM_HEIGHT = 60;
 const FURNITURE_ITEM_MARGIN = 10;
 
 // Recruitment UI Constants
-const RECRUIT_PANEL_WIDTH = 200;
+const RECRUIT_PANEL_WIDTH = 200; // Unused in drawStaffPanel logic but kept for safety
 const RECRUIT_BTN_HEIGHT = 50;
 const RECRUIT_BTN_MARGIN = 10;
+
+// Inventory UI Constants
+const INVENTORY_ITEM_HEIGHT = 70;
+const INVENTORY_ITEM_MARGIN = 10;
 
 export class InteriorView {
     private ctx: CanvasRenderingContext2D;
@@ -32,7 +35,7 @@ export class InteriorView {
 
     private selectedFurniture: Furniture | null = null;
     private mousePosition = { x: 0, y: 0 };
-    private activeTab: 'furniture' | 'staff' = 'furniture';
+    private activeTab: 'furniture' | 'staff' | 'inventory' = 'furniture';
 
     constructor(
         ctx: CanvasRenderingContext2D,
@@ -136,21 +139,21 @@ export class InteriorView {
         this.drawTabButtons();
         if (this.activeTab === 'furniture') {
             this.drawFurniturePanel();
-        } else {
+        } else if (this.activeTab === 'staff') {
             this.drawStaffPanel();
+        } else if (this.activeTab === 'inventory') {
+            this.drawInventoryPanel();
         }
     }
 
     private drawTabButtons(): void {
         const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-        const tabY = this.ctx.canvas.height - 50; // Bottom of panel area, or distinct area
-        // Let's put tabs at the top of the side panel
 
         // Background for tabs
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         this.ctx.fillRect(panelX, 0, FURNITURE_PANEL_WIDTH, 40);
 
-        const tabWidth = FURNITURE_PANEL_WIDTH / 2;
+        const tabWidth = FURNITURE_PANEL_WIDTH / 3;
 
         // Furniture Tab
         this.ctx.fillStyle = this.activeTab === 'furniture' ? '#666' : '#444';
@@ -158,6 +161,7 @@ export class InteriorView {
         this.ctx.fillStyle = '#fff';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
+        this.ctx.font = '12px Arial';
         this.ctx.fillText('Meble', panelX + tabWidth/2, 20);
 
         // Staff Tab
@@ -165,6 +169,12 @@ export class InteriorView {
         this.ctx.fillRect(panelX + tabWidth, 0, tabWidth, 40);
         this.ctx.fillStyle = '#fff';
         this.ctx.fillText('Ludzie', panelX + tabWidth * 1.5, 20);
+
+        // Inventory Tab
+        this.ctx.fillStyle = this.activeTab === 'inventory' ? '#666' : '#444';
+        this.ctx.fillRect(panelX + tabWidth * 2, 0, tabWidth, 40);
+        this.ctx.fillStyle = '#fff';
+        this.ctx.fillText('Spiżarnia', panelX + tabWidth * 2.5, 20);
     }
 
     private drawFurniturePanel(): void {
@@ -229,6 +239,67 @@ export class InteriorView {
         });
     }
 
+    private drawInventoryPanel(): void {
+        const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
+        const panelY = 40;
+
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.fillRect(panelX, panelY, FURNITURE_PANEL_WIDTH, this.ctx.canvas.height - panelY);
+
+        const playerMoney = GameState.getInstance().player.money;
+
+        INGREDIENT_DEFINITIONS.forEach((ing, index) => {
+            const itemY = panelY + (INVENTORY_ITEM_HEIGHT + INVENTORY_ITEM_MARGIN) * index + INVENTORY_ITEM_MARGIN;
+
+            // Background
+            this.ctx.fillStyle = '#555';
+            this.ctx.fillRect(panelX + INVENTORY_ITEM_MARGIN, itemY, FURNITURE_PANEL_WIDTH - 2 * INVENTORY_ITEM_MARGIN, INVENTORY_ITEM_HEIGHT);
+
+            // Icon (Circle)
+            // Color logic based on type or name (simple mapping)
+            const colors: Record<string, string> = {
+                'tomato_sauce': '#e74c3c',
+                'cheese': '#f1c40f',
+                'pepperoni': '#c0392b',
+                'dough': '#f5deb3'
+            };
+            this.ctx.fillStyle = colors[ing.id] || '#fff';
+            this.ctx.beginPath();
+            this.ctx.arc(panelX + INVENTORY_ITEM_MARGIN + 20, itemY + 20, 10, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Name
+            this.ctx.fillStyle = 'white';
+            this.ctx.font = '14px Arial';
+            this.ctx.textAlign = 'left';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(ing.name, panelX + INVENTORY_ITEM_MARGIN + 40, itemY + 20);
+
+            // Current Stock
+            const currentStock = this.activeRestaurant.inventory.get(ing.id) || 0;
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText(`Stan: ${currentStock}`, panelX + FURNITURE_PANEL_WIDTH - 20, itemY + 20);
+
+            // Buy Button
+            const buyAmount = 5;
+            const buyCost = ing.baseCost * buyAmount;
+            const canAfford = playerMoney >= buyCost;
+
+            const btnX = panelX + INVENTORY_ITEM_MARGIN + 10;
+            const btnY = itemY + 35;
+            const btnW = FURNITURE_PANEL_WIDTH - 2 * INVENTORY_ITEM_MARGIN - 20;
+            const btnH = 25;
+
+            this.ctx.fillStyle = canAfford ? '#27ae60' : '#7f8c8d';
+            this.ctx.fillRect(btnX, btnY, btnW, btnH);
+
+            this.ctx.fillStyle = 'white';
+            this.ctx.textAlign = 'center';
+            this.ctx.font = '12px Arial';
+            this.ctx.fillText(`Kup ${buyAmount} szt. ($${buyCost.toFixed(2)})`, btnX + btnW / 2, btnY + btnH / 2);
+        });
+    }
+
     private drawFurnitureGhost(interiorOffsetX: number, interiorOffsetY: number): void {
         if (!this.selectedFurniture) return;
 
@@ -287,17 +358,41 @@ export class InteriorView {
 
         // --- Visual Indicators ---
         // Chef: Working -> Progress Bar
-        if (employee.role === EmployeeRole.Chef && employee.state === EmployeeState.Working && employee.currentOrder) {
-            const barWidth = 40;
-            const barHeight = 5;
-            const barX = screenPos.x - barWidth / 2;
-            const barY = drawY - 10;
+        if (employee.role === EmployeeRole.Chef) {
+             if (employee.state === EmployeeState.Working && employee.currentOrder) {
+                const barWidth = 40;
+                const barHeight = 5;
+                const barX = screenPos.x - barWidth / 2;
+                const barY = drawY - 10;
 
-            this.ctx.fillStyle = '#555';
-            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+                this.ctx.fillStyle = '#555';
+                this.ctx.fillRect(barX, barY, barWidth, barHeight);
 
-            this.ctx.fillStyle = '#0f0';
-            this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / 100), barHeight);
+                this.ctx.fillStyle = '#0f0';
+                this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / 100), barHeight);
+             } else if (employee.state === EmployeeState.Idle) {
+                 // Check if waiting for ingredients
+                 const hasPendingOrders = this.activeRestaurant.kitchenQueue.some(o => o.state === OrderState.Pending);
+                 if (hasPendingOrders) {
+                     // Check if ANY pending order is blocked by ingredients
+                     const blockedOrder = this.activeRestaurant.kitchenQueue.find(o =>
+                         o.state === OrderState.Pending && !this.activeRestaurant.hasIngredientsFor(o.pizza)
+                     );
+
+                     if (blockedOrder) {
+                         // Draw "No Ingredients" Alert
+                         this.ctx.fillStyle = 'red';
+                         this.ctx.font = 'bold 20px Arial';
+                         this.ctx.textAlign = 'center';
+                         this.ctx.fillText('!', screenPos.x, drawY - 10);
+
+                         // Optional: Draw a small crate icon or something
+                         this.ctx.strokeStyle = 'white';
+                         this.ctx.lineWidth = 1;
+                         this.ctx.strokeText('!', screenPos.x, drawY - 10);
+                     }
+                 }
+             }
         }
 
         // Waiter: Walking with food -> Pizza Icon
@@ -429,11 +524,15 @@ export class InteriorView {
         if (clickX >= panelX) {
             // Handle Tab Clicks
             if (clickY < 40) {
-                 if (clickX < panelX + FURNITURE_PANEL_WIDTH / 2) {
+                 const tabWidth = FURNITURE_PANEL_WIDTH / 3;
+                 if (clickX < panelX + tabWidth) {
                      this.activeTab = 'furniture';
-                 } else {
+                 } else if (clickX < panelX + tabWidth * 2) {
                      this.activeTab = 'staff';
-                     this.selectedFurniture = null; // Clear selection when switching tabs
+                     this.selectedFurniture = null;
+                 } else {
+                     this.activeTab = 'inventory';
+                     this.selectedFurniture = null;
                  }
                  return;
             }
@@ -446,7 +545,7 @@ export class InteriorView {
                         this.selectedFurniture = { ...item };
                     }
                 });
-            } else {
+            } else if (this.activeTab === 'staff') {
                 const candidates = [
                     { role: 'Kucharz', cost: 500, type: EmployeeRole.Chef },
                     { role: 'Kelner', cost: 300, type: EmployeeRole.Waiter }
@@ -456,6 +555,30 @@ export class InteriorView {
                      if (clickY >= itemY && clickY <= itemY + RECRUIT_BTN_HEIGHT) {
                          this.hireEmployee(cand.type, cand.cost);
                      }
+                });
+            } else if (this.activeTab === 'inventory') {
+                INGREDIENT_DEFINITIONS.forEach((ing, index) => {
+                    const itemY = 40 + (INVENTORY_ITEM_HEIGHT + INVENTORY_ITEM_MARGIN) * index + INVENTORY_ITEM_MARGIN;
+
+                    const btnX = panelX + INVENTORY_ITEM_MARGIN + 10;
+                    const btnY = itemY + 35;
+                    const btnW = FURNITURE_PANEL_WIDTH - 2 * INVENTORY_ITEM_MARGIN - 20;
+                    const btnH = 25;
+
+                    if (clickX >= btnX && clickX <= btnX + btnW &&
+                        clickY >= btnY && clickY <= btnY + btnH) {
+
+                        const buyAmount = 5;
+                        const totalCost = ing.baseCost * buyAmount;
+
+                        // Attempt purchase
+                        if (this.activeRestaurant.buyIngredient(ing.id, buyAmount, totalCost)) {
+                            console.log(`Bought ${buyAmount} ${ing.name}`);
+                            // Play sound or visual feedback here
+                        } else {
+                            console.log("Not enough money for ingredients");
+                        }
+                    }
                 });
             }
             return;

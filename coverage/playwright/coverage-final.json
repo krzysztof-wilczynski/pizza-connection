@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 2
+      "actualWorkers": 1
     },
     "preserveOutput": "always",
     "reporter": [
@@ -37,7 +37,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 2
+          "actualWorkers": 1
         },
         "id": "chromium",
         "name": "chromium",
@@ -91,12 +91,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 335,
+                      "duration": 270,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-11-27T01:54:06.186Z",
+                      "startTime": "2025-11-27T21:37:56.608Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -108,98 +108,6 @@
               "file": "example.spec.ts",
               "line": 17,
               "column": 3
-            },
-            {
-              "title": "should switch to interior view when clicking on a restaurant",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 394,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-27T01:54:06.149Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "a30a6eba6312f6b87ea5-30e605f5349ccbd49b06",
-              "file": "example.spec.ts",
-              "line": 25,
-              "column": 3
-            },
-            {
-              "title": "should open pizza creator and add an ingredient",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 330,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at /app/tests/example.spec.ts:69:29",
-                        "location": {
-                          "file": "/app/tests/example.spec.ts",
-                          "column": 29,
-                          "line": 69
-                        },
-                        "snippet": "  67 |       return game.pizzaCreator.selectedIngredients.length;\n  68 |     });\n> 69 |     expect(ingredientCount).toBe(1);\n     |                             ^\n  70 |   });\n  71 | });\n  72 |"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/app/tests/example.spec.ts",
-                            "column": 29,
-                            "line": 69
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n  67 |       return game.pizzaCreator.selectedIngredients.length;\n  68 |     });\n> 69 |     expect(ingredientCount).toBe(1);\n     |                             ^\n  70 |   });\n  71 | });\n  72 |\n    at /app/tests/example.spec.ts:69:29"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-27T01:54:06.716Z",
-                      "annotations": [],
-                      "attachments": [],
-                      "errorLocation": {
-                        "file": "/app/tests/example.spec.ts",
-                        "column": 29,
-                        "line": 69
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "a30a6eba6312f6b87ea5-17209ad424b1039eda5f",
-              "file": "example.spec.ts",
-              "line": 50,
-              "column": 3
             }
           ]
         }
@@ -208,11 +116,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-11-27T01:54:03.417Z",
-    "duration": 3739.08,
-    "expected": 2,
+    "startTime": "2025-11-27T21:37:55.488Z",
+    "duration": 1614.56,
+    "expected": 1,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }
