@@ -68,6 +68,8 @@ export class Game {
             { key: 'pizza_base', path: '/assets/pizza/ciasto.svg' },
             { key: 'building_sale', path: '/assets/city/residential/house.svg' },
             { key: 'building_owned', path: '/assets/city/commercial/restaurant.svg' },
+            { key: 'chef', path: '/assets/people/chef.svg' },
+            { key: 'waiter', path: '/assets/people/waiter.svg' },
         ];
 
         await Promise.all(assetsToLoad.map(asset => this.assetManager.loadAsset(asset.key, asset.path)));

@@ -10,6 +10,12 @@ export enum EmployeeRole {
   Waiter,
 }
 
+export enum EmployeeState {
+  Idle,
+  Walking,
+  Working,
+}
+
 export enum TileType {
   Empty,
   BuildingForSale,
