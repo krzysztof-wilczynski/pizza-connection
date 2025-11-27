@@ -1,14 +1,14 @@
-import {AssetManager} from './AssetManager';
-import {ASSETS_MANIFEST} from './AssetsManifest';
-import {GameMap} from './Map';
-import {PizzaCreator} from './PizzaCreator';
-import {UIManager} from './UIManager';
-import {GameState} from './model/GameState';
-import {loadInitialData} from './model/initialData';
-import {GameView, TileType} from './model/enums';
-import {Tile, BuildingOwnedTile} from './model/Tile';
-import {CityView} from './CityView';
-import {InteriorView} from './InteriorView';
+import {AssetManager} from '../systems/AssetManager';
+import {ASSETS_MANIFEST} from '../systems/AssetsManifest';
+import {GameMap} from '../model/Map';
+import {PizzaCreator} from '../views/PizzaCreator';
+import {UIManager} from '../views/UIManager';
+import {GameState} from '../model/GameState';
+import {loadInitialData} from '../data/initialData';
+import {GameView, TileType} from '../model/enums';
+import {Tile, BuildingOwnedTile} from '../model/Tile';
+import {CityView} from '../views/CityView';
+import {InteriorView} from '../views/InteriorView';
 
 export class Game {
   private canvas: HTMLCanvasElement;

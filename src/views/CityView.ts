@@ -1,12 +1,12 @@
-// src/CityView.ts
-import { AssetManager } from './AssetManager';
-import { GameMap } from './Map';
-import { GameState } from './model/GameState';
-import { gridToScreen, isPointInPolygon, Point, TILE_WIDTH_HALF, TILE_HEIGHT_HALF, BUILDING_HEIGHT } from './Isometric';
-import { TileType } from './model/enums';
+// src/views/CityView.ts
+import { AssetManager } from '../systems/AssetManager';
+import { GameMap } from '../model/Map';
+import { GameState } from '../model/GameState';
+import { gridToScreen, isPointInPolygon, Point, TILE_WIDTH_HALF, TILE_HEIGHT_HALF, BUILDING_HEIGHT } from '../systems/Isometric';
+import { TileType } from '../model/enums';
 import { UIManager } from './UIManager';
-import { Restaurant } from './model/Restaurant';
-import { Tile } from './model/Tile';
+import { Restaurant } from '../model/Restaurant';
+import { Tile } from '../model/Tile';
 import { PizzaCreator } from './PizzaCreator';
 
 export class CityView {

@@ -1,5 +1,6 @@
-import { TileType } from './model/enums';
-import { Tile } from './model/Tile';
+// src/model/Map.ts
+import { TileType } from './enums';
+import { Tile } from './Tile';
 
 export class GameMap {
     private grid: Tile[][];

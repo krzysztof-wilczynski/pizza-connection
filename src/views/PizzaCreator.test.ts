@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PizzaCreator } from './PizzaCreator';
-import { Ingredient } from './model/Ingredient';
+import { Ingredient } from '../model/Ingredient';
 
 describe('PizzaCreator', () => {
   it('should calculate the price of a pizza correctly', () => {

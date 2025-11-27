@@ -1,6 +1,6 @@
-import { Pizza } from './model/Pizza';
-import { Ingredient as ModelIngredient } from './model/Ingredient';
-import { IngredientType } from './model/enums';
+import { Pizza } from '../model/Pizza';
+import { Ingredient as ModelIngredient } from '../model/Ingredient';
+import { IngredientType } from '../model/enums';
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Interfaces ---

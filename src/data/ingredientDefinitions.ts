@@ -1,5 +1,5 @@
-// src/model/ingredientDefinitions.ts
-import { IngredientType } from './enums';
+// src/data/ingredientDefinitions.ts
+import { IngredientType } from '../model/enums';
 
 export interface IngredientDefinition {
   id: string;

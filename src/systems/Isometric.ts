@@ -1,4 +1,4 @@
-// src/Isometric.ts
+// src/systems/Isometric.ts
 
 export const TILE_WIDTH_HALF = 64;
 export const TILE_HEIGHT_HALF = 32;
