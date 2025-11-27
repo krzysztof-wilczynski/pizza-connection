@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "generate-assets": "node generate_assets.js",
+    "dev": "npm run generate-assets && vite",
+    "build": "npm run generate-assets && vite build",
     "preview": "vite preview",
     "test": "vitest run --coverage"
   },
