@@ -1,12 +1,12 @@
-// src/model/initialData.ts
-import { GameState } from './GameState';
-import { Restaurant } from './Restaurant';
-import { Pizza } from './Pizza';
-import { Ingredient } from './Ingredient';
-import { EmployeeRole, TileType } from './enums';
-import { GameMap } from '../Map';
+// src/data/initialData.ts
+import { GameState } from '../model/GameState';
+import { Restaurant } from '../model/Restaurant';
+import { Pizza } from '../model/Pizza';
+import { Ingredient } from '../model/Ingredient';
+import { EmployeeRole, TileType } from '../model/enums';
+import { GameMap } from '../model/Map';
 import { INGREDIENT_DEFINITIONS } from './ingredientDefinitions';
-import { Employee } from './Employee';
+import { Employee } from '../model/Employee';
 
 export function loadInitialData(gameState: GameState, map: GameMap): void {
   // --- Register all ingredients in the central registry ---

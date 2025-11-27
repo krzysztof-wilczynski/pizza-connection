@@ -1,4 +1,4 @@
-import { Furniture } from './Furniture';
+import { Furniture } from '../model/Furniture';
 
 export const FURNITURE_CATALOG: Furniture[] = [
     {

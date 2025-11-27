@@ -1,14 +1,14 @@
-import {gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF} from './Isometric';
-import {Furniture, PlacedFurniture} from './model/Furniture';
-import {FURNITURE_CATALOG} from './model/FurnitureCatalog';
+import {gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF} from '../systems/Isometric';
+import {Furniture, PlacedFurniture} from '../model/Furniture';
+import {FURNITURE_CATALOG} from '../data/FurnitureCatalog';
 import {PizzaCreator} from './PizzaCreator';
-import {Restaurant} from './model/Restaurant';
-import {AssetManager} from './AssetManager';
-import {GameState} from './model/GameState';
-import {Employee} from './model/Employee';
-import {Customer} from './model/Customer';
-import {EmployeeRole, EmployeeState, CustomerState, OrderState} from './model/enums';
-import {INGREDIENT_DEFINITIONS} from './model/ingredientDefinitions';
+import {Restaurant} from '../model/Restaurant';
+import {AssetManager} from '../systems/AssetManager';
+import {GameState} from '../model/GameState';
+import {Employee} from '../model/Employee';
+import {Customer} from '../model/Customer';
+import {EmployeeRole, EmployeeState, CustomerState, OrderState} from '../model/enums';
+import {INGREDIENT_DEFINITIONS} from '../data/ingredientDefinitions';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
