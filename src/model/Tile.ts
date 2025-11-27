@@ -26,11 +26,16 @@ export interface PavementTile extends BaseTile {
   type: TileType.Pavement;
 }
 
+export interface GrassTile extends BaseTile {
+  type: TileType.Grass;
+}
+
 export type Tile =
   | EmptyTile
   | BuildingForSaleTile
   | BuildingOwnedTile
   | RoadTile
-  | PavementTile;
+  | PavementTile
+  | GrassTile;
 
 

@@ -52,7 +52,7 @@ export class GameMap {
         };
 
         // Corner 2: Bottom-Right area
-        map[13][13] = {
+        map[9][9] = {
             type: TileType.BuildingForSale,
             price: 5000
         };
@@ -70,7 +70,7 @@ export class GameMap {
         for (const coord of decoCoords) {
             map[coord.r][coord.c] = {
                 type: TileType.BuildingOwned,
-                restaurantId: undefined // Decorative
+                restaurantId: "" // Decorative
             };
         }
 

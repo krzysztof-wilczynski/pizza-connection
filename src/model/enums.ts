@@ -38,6 +38,7 @@ export enum TileType {
   BuildingOwned,
   Road,
   Pavement,
+  Grass
 }
 
 export enum GameView {
