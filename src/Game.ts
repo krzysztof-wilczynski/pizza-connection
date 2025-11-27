@@ -52,6 +52,7 @@ export class Game {
 
         this.cameraOffset.x = this.canvas.width / 2;
         this.cameraOffset.y = this.canvas.height / 4;
+
     }
 
     public async preloadAssets(): Promise<void> {
@@ -132,6 +133,7 @@ export class Game {
                 this.interiorView = new InteriorView(this.ctx, this.activeBuilding!, this.pizzaCreator, this.assetManager);
                 this.currentView = GameView.Interior;
             } else {
+                this.interiorView?.hideUI();
                 this.currentView = GameView.City;
                 this.interiorView = null;
                 this.activeBuilding = null;
