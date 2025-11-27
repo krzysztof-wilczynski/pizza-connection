@@ -1,4 +1,5 @@
 // src/CityView.ts
+import { AssetManager } from './AssetManager';
 import { GameMap } from './Map';
 import { GameState } from './model/GameState';
 import { gridToScreen, isPointInPolygon, Point, TILE_WIDTH_HALF, TILE_HEIGHT_HALF, BUILDING_HEIGHT } from './Isometric';
@@ -15,6 +16,7 @@ export class CityView {
     private cameraOffset: { x: number, y: number };
     private uiManager: UIManager;
     private pizzaCreator: PizzaCreator;
+    private assetManager: AssetManager;
 
     constructor(
         ctx: CanvasRenderingContext2D,
@@ -22,7 +24,8 @@ export class CityView {
         gameState: GameState,
         cameraOffset: { x: number, y: number },
         uiManager: UIManager,
-        pizzaCreator: PizzaCreator
+        pizzaCreator: PizzaCreator,
+        assetManager: AssetManager
     ) {
         this.ctx = ctx;
         this.map = map;
@@ -30,6 +33,7 @@ export class CityView {
         this.cameraOffset = cameraOffset;
         this.uiManager = uiManager;
         this.pizzaCreator = pizzaCreator;
+        this.assetManager = assetManager;
     }
 
     public update(deltaTime: number): void {
@@ -50,9 +54,9 @@ export class CityView {
                 if (tile) {
                     const screenPos = gridToScreen(col, row);
                     if (tile.type === TileType.BuildingForSale) {
-                        this.drawBuilding(screenPos.x, screenPos.y, '#a8a8a8');
+                        this.drawBuilding(screenPos.x, screenPos.y, '#a8a8a8', 'building_sale');
                     } else if (tile.type === TileType.BuildingOwned) {
-                        this.drawBuilding(screenPos.x, screenPos.y, '#4CAF50');
+                        this.drawBuilding(screenPos.x, screenPos.y, '#4CAF50', 'building_owned');
                     } else {
                          // Draw pavement/road tiles
                         this.drawTile(screenPos.x, screenPos.y, tile.type === TileType.Road ? '#444' : '#666');
@@ -77,7 +81,18 @@ export class CityView {
         this.ctx.stroke();
     }
 
-    private drawBuilding(x: number, y: number, color: string): void {
+    private drawBuilding(x: number, y: number, color: string, assetKey: string): void {
+        const img = this.assetManager.getAsset(assetKey);
+        if (img && img.naturalWidth > 0) {
+            const drawWidth = img.naturalWidth;
+            const drawHeight = img.naturalHeight;
+            const offsetX = drawWidth / 2;
+            const offsetY = drawHeight - (TILE_HEIGHT_HALF * 2);
+            this.ctx.drawImage(img, x - offsetX, y - offsetY, drawWidth, drawHeight);
+            return;
+        }
+
+        // Fallback procedural drawing
         const topY = y - BUILDING_HEIGHT;
 
         // Top face

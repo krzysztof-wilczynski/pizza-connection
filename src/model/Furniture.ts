@@ -6,6 +6,7 @@ export interface Furniture {
     width: number; // in grid units
     height: number; // in grid units
     color: string;
+    assetKey: string;
     // sprite?: string; // Optional: for when we add actual graphics
 }
 

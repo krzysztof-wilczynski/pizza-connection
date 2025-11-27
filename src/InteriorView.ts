@@ -3,6 +3,7 @@ import { gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from '.
 import { Furniture, PlacedFurniture } from './model/Furniture';
 import { PizzaCreator } from './PizzaCreator';
 import { Tile } from './model/Tile';
+import { AssetManager } from './AssetManager';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
@@ -13,39 +14,31 @@ const FURNITURE_ITEM_HEIGHT = 60;
 const FURNITURE_ITEM_MARGIN = 10;
 
 const AVAILABLE_FURNITURE: Furniture[] = [
-    { id: 1, name: 'Stolik', width: 2, height: 1, color: '#8B4513' },
-    { id: 2, name: 'Piec', width: 2, height: 2, color: '#2F4F4F' },
-    { id: 3, name: 'Lada', width: 3, height: 1, color: '#A0522D' },
+    { id: 1, name: 'Stolik', assetKey: 'table', width: 2, height: 1, color: '#8B4513' },
+    { id: 2, name: 'Piec', assetKey: 'oven', width: 2, height: 2, color: '#2F4F4F' },
+    { id: 3, name: 'Lada', assetKey: 'table', width: 3, height: 1, color: '#A0522D' },
 ];
 
 export class InteriorView {
     private ctx: CanvasRenderingContext2D;
     private activeBuilding: Tile;
     private pizzaCreator: PizzaCreator;
+    private assetManager: AssetManager;
 
     private placedFurniture: PlacedFurniture[] = [];
     private selectedFurniture: Furniture | null = null;
     private mousePosition = { x: 0, y: 0 };
 
-    constructor(ctx: CanvasRenderingContext2D, activeBuilding: Tile, pizzaCreator: PizzaCreator) {
+    constructor(
+        ctx: CanvasRenderingContext2D,
+        activeBuilding: Tile,
+        pizzaCreator: PizzaCreator,
+        assetManager: AssetManager
+    ) {
         this.ctx = ctx;
         this.activeBuilding = activeBuilding;
         this.pizzaCreator = pizzaCreator;
-        this.showUI();
-    }
-
-    public showUI(): void {
-        const interiorUI = document.getElementById('interior-ui');
-        if (interiorUI) {
-            interiorUI.style.display = 'block';
-        }
-    }
-
-    public hideUI(): void {
-        const interiorUI = document.getElementById('interior-ui');
-        if (interiorUI) {
-            interiorUI.style.display = 'none';
-        }
+        this.assetManager = assetManager;
     }
 
     public update(deltaTime: number): void {
@@ -141,32 +134,51 @@ export class InteriorView {
     }
 
     private drawFurniture(x: number, y: number, furniture: Furniture, isValid: boolean = true): void {
-        this.ctx.globalAlpha = isValid ? 1.0 : 0.5;
-        this.ctx.fillStyle = isValid ? furniture.color : 'red';
-        for (let row = 0; row < furniture.height; row++) {
-            for (let col = 0; col < furniture.width; col++) {
-                const tileScreenPos = gridToScreen(x + col, y + row);
-                this.ctx.beginPath();
-                this.ctx.moveTo(tileScreenPos.x, tileScreenPos.y);
-                this.ctx.lineTo(tileScreenPos.x + TILE_WIDTH_HALF, tileScreenPos.y + TILE_HEIGHT_HALF);
-                this.ctx.lineTo(tileScreenPos.x, tileScreenPos.y + TILE_HEIGHT_HALF * 2);
-                this.ctx.lineTo(tileScreenPos.x - TILE_WIDTH_HALF, tileScreenPos.y + TILE_HEIGHT_HALF);
-                this.ctx.closePath();
-                this.ctx.fill();
+        const img = this.assetManager.getAsset(furniture.assetKey);
+        const screenPos = gridToScreen(x, y);
+
+        if (img && img.naturalWidth > 0) {
+            this.ctx.globalAlpha = isValid ? 1.0 : 0.5;
+            const drawX = screenPos.x - img.naturalWidth / 2;
+            const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
+            this.ctx.drawImage(img, drawX, drawY);
+            this.ctx.globalAlpha = 1.0;
+        } else {
+            // Fallback to procedural drawing
+            this.ctx.globalAlpha = isValid ? 1.0 : 0.5;
+            this.ctx.fillStyle = isValid ? furniture.color : 'red';
+            for (let row = 0; row < furniture.height; row++) {
+                for (let col = 0; col < furniture.width; col++) {
+                    const tileScreenPos = gridToScreen(x + col, y + row);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(tileScreenPos.x, tileScreenPos.y);
+                    this.ctx.lineTo(tileScreenPos.x + TILE_WIDTH_HALF, tileScreenPos.y + TILE_HEIGHT_HALF);
+                    this.ctx.lineTo(tileScreenPos.x, tileScreenPos.y + TILE_HEIGHT_HALF * 2);
+                    this.ctx.lineTo(tileScreenPos.x - TILE_WIDTH_HALF, tileScreenPos.y + TILE_HEIGHT_HALF);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                }
             }
+            this.ctx.globalAlpha = 1.0;
         }
-        this.ctx.globalAlpha = 1.0;
     }
 
     private drawTile(x: number, y: number): void {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-        this.ctx.lineTo(x + TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
-        this.ctx.lineTo(x, y + TILE_HEIGHT_HALF * 2);
-        this.ctx.lineTo(x - TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
-        this.ctx.closePath();
-        this.ctx.strokeStyle = '#555';
-        this.ctx.stroke();
+        const floor = this.assetManager.getAsset('floor');
+        if (floor && floor.naturalWidth > 0) {
+            this.ctx.drawImage(floor, x - floor.naturalWidth / 2, y);
+        } else {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y);
+            this.ctx.lineTo(x + TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
+            this.ctx.lineTo(x, y + TILE_HEIGHT_HALF * 2);
+            this.ctx.lineTo(x - TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
+            this.ctx.closePath();
+            this.ctx.fillStyle = '#9c8256'; // Fallback floor color
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#555';
+            this.ctx.stroke();
+        }
     }
 
     public handleMouseMove(event: MouseEvent): void {

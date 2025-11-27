@@ -1,3 +1,4 @@
+import { AssetManager } from './AssetManager';
 import { GameMap } from './Map';
 import { PizzaCreator } from './PizzaCreator';
 import { UIManager } from './UIManager';
@@ -17,6 +18,7 @@ export class Game {
     private cameraOffset = { x: 0, y: 0 };
     private uiManager: UIManager;
     private pizzaCreator: PizzaCreator;
+    private assetManager: AssetManager;
 
     private currentView: GameView = GameView.City;
     private cityView: CityView;
@@ -32,11 +34,12 @@ export class Game {
         this.ctx = context;
         this.map = new GameMap(10, 10);
         this.gameState = GameState.getInstance();
+        this.assetManager = new AssetManager();
         loadInitialData(this.gameState, this.map);
         this.uiManager = new UIManager();
         this.pizzaCreator = new PizzaCreator();
 
-        this.cityView = new CityView(this.ctx, this.map, this.gameState, this.cameraOffset, this.uiManager, this.pizzaCreator);
+        this.cityView = new CityView(this.ctx, this.map, this.gameState, this.cameraOffset, this.uiManager, this.pizzaCreator, this.assetManager);
 
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -50,6 +53,23 @@ export class Game {
         this.cameraOffset.x = this.canvas.width / 2;
         this.cameraOffset.y = this.canvas.height / 4;
 
+    }
+
+    public async preloadAssets(): Promise<void> {
+        const assetsToLoad = [
+            { key: 'floor', path: '/assets/restaurant/floor.svg' },
+            { key: 'wall_left', path: '/assets/restaurant/walls/left_wall.svg' },
+            { key: 'wall_right', path: '/assets/restaurant/walls/right_wall.svg' },
+            { key: 'wall_back', path: '/assets/restaurant/walls/back_wall.svg' },
+            { key: 'oven', path: '/assets/restaurant/kitchen/oven.svg' },
+            { key: 'table', path: '/assets/restaurant/interior/table.svg' },
+            { key: 'chair', path: '/assets/restaurant/interior/chair.svg' },
+            { key: 'pizza_base', path: '/assets/pizza/ciasto.svg' },
+            { key: 'building_sale', path: '/assets/city/residential/house.svg' },
+            { key: 'building_owned', path: '/assets/city/commercial/restaurant.svg' },
+        ];
+
+        await Promise.all(assetsToLoad.map(asset => this.assetManager.loadAsset(asset.key, asset.path)));
     }
 
     private resizeCanvas(): void {
@@ -110,7 +130,7 @@ export class Game {
         const changeViewCallback = (newView: any) => {
             if (this.currentView === GameView.City) {
                 this.activeBuilding = newView;
-                this.interiorView = new InteriorView(this.ctx, this.activeBuilding!, this.pizzaCreator);
+                this.interiorView = new InteriorView(this.ctx, this.activeBuilding!, this.pizzaCreator, this.assetManager);
                 this.currentView = GameView.Interior;
             } else {
                 this.interiorView?.hideUI();

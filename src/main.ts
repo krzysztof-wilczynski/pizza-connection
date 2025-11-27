@@ -1,4 +1,7 @@
 import { Game } from './Game';
 
-const game = new Game();
-game.start();
+(async () => {
+    const game = new Game();
+    await game.preloadAssets();
+    game.start();
+})();
