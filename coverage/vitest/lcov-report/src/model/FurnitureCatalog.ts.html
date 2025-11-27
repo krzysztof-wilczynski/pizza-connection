@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/model/GameState.ts</title>
+    <title>Code coverage report for src/model/FurnitureCatalog.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/model</a> GameState.ts</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/model</a> FurnitureCatalog.ts</h1>
         <div class='clearfix'>
 
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>23/23</span>
+                <span class='fraction'>0/1</span>
             </div>
 
 
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>0/0</span>
             </div>
 
 
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>0/0</span>
             </div>
 
 
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>0/1</span>
             </div>
 
 
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -105,7 +105,15 @@
 <a name='L40'></a><a href='#L40'>40</a>
 <a name='L41'></a><a href='#L41'>41</a>
 <a name='L42'></a><a href='#L42'>42</a>
-<a name='L43'></a><a href='#L43'>43</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -117,78 +125,88 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Player } from './Player';
-import { Restaurant } from './Restaurant';
-import {Ingredient} from './Ingredient';
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Furniture } from './Furniture';
 &nbsp;
-export class GameState {
-  private static instance: GameState;
-&nbsp;
-  public gameDate: Date;
-  public restaurants: Restaurant[];
-  public player: Player;
-  public ingredients: Map&lt;string, Ingredient&gt;; // Central ingredient registry
-&nbsp;
-  private constructor() {
-    this.gameDate = new Date(); // Initial game date
-    this.restaurants = [];
-    this.player = new Player(50000); // Starting money
-    this.ingredients = new Map();
-  }
-&nbsp;
-  public static getInstance(): GameState {
-    if (!GameState.instance) {
-      GameState.instance = new GameState();
+export const FURNITURE_CATALOG: Furniture[] = <span class="cstat-no" title="statement not covered" >[</span>
+    {
+        id: 1,
+        name: 'Drewniany Stolik',
+        price: 150,
+        type: 'dining',
+        stats: { capacity: 2 },
+        width: 1,
+        height: 1,
+        assetKey: 'table',
+        color: '#8B4513'
+    },
+    {
+        id: 2,
+        name: 'Krzesło',
+        price: 50,
+        type: 'dining',
+        stats: { capacity: 1 },
+        width: 1,
+        height: 1,
+        assetKey: 'chair',
+        color: '#A0522D'
+    },
+    {
+        id: 3,
+        name: 'Piec do pizzy',
+        price: 2000,
+        type: 'kitchen',
+        stats: { cookingSpeed: 10 },
+        width: 2,
+        height: 2,
+        assetKey: 'oven',
+        color: '#2F4F4F'
+    },
+    {
+        id: 4,
+        name: 'Doniczka',
+        price: 100,
+        type: 'decoration',
+        stats: { appeal: 5 },
+        width: 1,
+        height: 1,
+        assetKey: 'plant',
+        color: '#228B22'
     }
-    return GameState.instance;
-  }
-&nbsp;
-  public addRestaurant(restaurant: Restaurant): void {
-    this.restaurants.push(restaurant);
-  }
-&nbsp;
-  public registerIngredient(ingredient: Ingredient): void {
-    this.ingredients.set(ingredient.id, ingredient);
-  }
-&nbsp;
-  public getIngredient(id: string): Ingredient | undefined {
-    return this.ingredients.get(id);
-  }
-&nbsp;
-  public getAllIngredients(): Ingredient[] {
-    return Array.from(this.ingredients.values());
-  }
-}
+];
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
