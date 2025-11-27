@@ -20,7 +20,7 @@ export class Employee {
     this.gridX = -1;
     this.gridY = -1;
     this.state = EmployeeState.Idle;
-    this.assetKey = role === EmployeeRole.Chef ? 'chef' : 'waiter';
+    this.assetKey = role === EmployeeRole.Chef ? 'people_chef' : 'people_waiter';
   }
 
   public update(deltaTime: number, restaurant: Restaurant) {

@@ -9,7 +9,7 @@ export const FURNITURE_CATALOG: Furniture[] = [
         stats: { capacity: 2 },
         width: 1,
         height: 1,
-        assetKey: 'table',
+        assetKey: 'furniture_tables_table_round_wood',
         color: '#8B4513'
     },
     {
@@ -20,7 +20,7 @@ export const FURNITURE_CATALOG: Furniture[] = [
         stats: { capacity: 1 },
         width: 1,
         height: 1,
-        assetKey: 'chair',
+        assetKey: 'furniture_seating_chair_simple',
         color: '#A0522D'
     },
     {
@@ -31,7 +31,7 @@ export const FURNITURE_CATALOG: Furniture[] = [
         stats: { cookingSpeed: 10 },
         width: 2,
         height: 2,
-        assetKey: 'oven',
+        assetKey: 'furniture_kitchen_oven',
         color: '#2F4F4F'
     },
     {
@@ -42,7 +42,7 @@ export const FURNITURE_CATALOG: Furniture[] = [
         stats: { appeal: 5 },
         width: 1,
         height: 1,
-        assetKey: 'plant',
+        assetKey: 'furniture_decor_plant_small',
         color: '#228B22'
     }
 ];
