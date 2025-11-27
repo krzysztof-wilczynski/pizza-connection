@@ -3,7 +3,9 @@ import { Ingredient } from './Ingredient';
 import { Pizza } from './Pizza';
 import { Employee } from './Employee';
 import { Furniture, PlacedFurniture } from './Furniture';
-import { Customer, CustomerState } from './Customer';
+import { Customer } from './Customer';
+import { CustomerState, OrderState } from './enums';
+import { Order } from './Order';
 import { GameState } from './GameState';
 
 export class Restaurant {
@@ -13,6 +15,8 @@ export class Restaurant {
   public employees: Employee[] = [];
   public furniture: PlacedFurniture[] = [];
   public customers: Customer[] = [];
+  public kitchenQueue: Order[] = [];
+  public readyCounter: Order[] = [];
   private spawnTimer: number = 0;
 
   public width: number = 10;
@@ -30,6 +34,11 @@ export class Restaurant {
       this.trySpawnCustomer();
     }
 
+    // Update Employees
+    this.employees.forEach(employee => {
+      employee.update(deltaTime, this);
+    });
+
     // Update Customers
     const customersToRemove: string[] = [];
     this.customers.forEach(customer => {
@@ -37,6 +46,8 @@ export class Restaurant {
     });
 
     this.customers = this.customers.filter(c => !customersToRemove.includes(c.id));
+
+    // Clean up served orders from system (optional garbage collection if needed, but Employee handles removal)
   }
 
   private trySpawnCustomer() {
@@ -88,14 +99,26 @@ export class Restaurant {
       // Order logic
       if (this.menu.length > 0) {
         const randomPizza = this.menu[Math.floor(Math.random() * this.menu.length)];
-        customer.order = randomPizza;
-        console.log(`Customer ${customer.id} ordered ${randomPizza.name}`);
-        customer.state = CustomerState.Eating;
-        customer.eatingTimer = 3000; // 3 seconds to eat
+        // Create Order
+        const newOrder: Order = {
+            id: uuidv4(),
+            pizza: randomPizza,
+            customerId: customer.id,
+            state: OrderState.Pending,
+            progress: 0,
+            maxProgress: 100
+        };
+        this.kitchenQueue.push(newOrder);
+
+        customer.order = randomPizza; // Keep reference to what they ordered (optional, but good for UI)
+        console.log(`Customer ${customer.id} ordered ${randomPizza.name} -> Queue size: ${this.kitchenQueue.length}`);
+        customer.state = CustomerState.WaitingForFood;
       } else {
         // No menu, leave
         customer.state = CustomerState.Leaving;
       }
+    } else if (customer.state === CustomerState.WaitingForFood) {
+      // Logic handled by Waiter (or if we want a timeout here)
     } else if (customer.state === CustomerState.Eating) {
       customer.eatingTimer -= dt;
       if (customer.eatingTimer <= 0) {
