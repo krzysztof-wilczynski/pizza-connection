@@ -8,6 +8,8 @@ import { GameState } from './model/GameState';
 import { Employee } from './model/Employee';
 import { Customer, CustomerState } from './model/Customer';
 import { EmployeeRole, EmployeeState } from './model/enums';
+import { Customer } from './model/Customer';
+import { EmployeeRole, EmployeeState, CustomerState } from './model/enums';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
@@ -300,6 +302,18 @@ export class InteriorView {
 
         // Waiter: Walking with food -> Pizza Icon
         if (employee.role === EmployeeRole.Waiter && employee.currentOrder && employee.state === EmployeeState.Walking) {
+            this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / employee.currentOrder.maxProgress), barHeight);
+        }
+
+        // Waiter: Walking with food -> Pizza Icon
+        // Check if waiter has an order that is ready or served (meaning they are carrying it)
+        // In our logic, if they have an order and are walking to customer, the order state is still Ready (removed from counter) or Served?
+        // Waiter logic: "Jak dojdzie do klienta: Usuń order z systemu." so while walking it is still "currentOrder"
+        if (employee.role === EmployeeRole.Waiter && employee.currentOrder && employee.state === EmployeeState.Walking) {
+             // We want to show pizza only if they have picked it up.
+             // Our logic: Walk to Counter (no order in hand, but target set).
+             // Then Pickup -> Walk to Customer (has currentOrder).
+             // So if `currentOrder` is not null, they are carrying it.
             const pizzaIcon = this.assetManager.getAsset('pizza_icon'); // Assumption: asset exists or we draw circle
             if (pizzaIcon && pizzaIcon.naturalWidth > 0) {
                  this.ctx.drawImage(pizzaIcon, screenPos.x, drawY - 20, 20, 20);

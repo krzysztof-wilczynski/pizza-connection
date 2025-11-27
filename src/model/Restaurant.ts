@@ -4,6 +4,8 @@ import { Pizza } from './Pizza';
 import { Employee } from './Employee';
 import { Furniture, PlacedFurniture } from './Furniture';
 import { Customer, CustomerState } from './Customer';
+import { Customer } from './Customer';
+import { CustomerState, OrderState } from './enums';
 import { Order } from './Order';
 import { GameState } from './GameState';
 
@@ -45,6 +47,8 @@ export class Restaurant {
     });
 
     this.customers = this.customers.filter(c => !customersToRemove.includes(c.id));
+
+    // Clean up served orders from system (optional garbage collection if needed, but Employee handles removal)
   }
 
   private trySpawnCustomer() {
@@ -98,6 +102,14 @@ export class Restaurant {
         const randomPizza = this.menu[Math.floor(Math.random() * this.menu.length)];
         // Create Order
         const newOrder = new Order(uuidv4(), randomPizza, customer.id, 'Pending', 0);
+        const newOrder: Order = {
+            id: uuidv4(),
+            pizza: randomPizza,
+            customerId: customer.id,
+            state: OrderState.Pending,
+            progress: 0,
+            maxProgress: 100
+        };
         this.kitchenQueue.push(newOrder);
 
         customer.order = randomPizza; // Keep reference to what they ordered (optional, but good for UI)

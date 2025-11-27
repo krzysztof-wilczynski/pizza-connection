@@ -1,4 +1,3 @@
-
 import { Pizza } from './Pizza';
 
 export enum CustomerState {
@@ -8,6 +7,7 @@ export enum CustomerState {
   Eating,
   Leaving
 }
+import { CustomerState } from './enums';
 
 export class Customer {
   id: string;
