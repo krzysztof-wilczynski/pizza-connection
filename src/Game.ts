@@ -33,7 +33,7 @@ export class Game {
             throw new Error("2D context not available");
         }
         this.ctx = context;
-        this.map = new GameMap(10, 10);
+        this.map = new GameMap(15, 15);
         this.gameState = GameState.getInstance();
         this.assetManager = new AssetManager();
         loadInitialData(this.gameState, this.map);

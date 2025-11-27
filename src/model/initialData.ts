@@ -38,13 +38,28 @@ export function loadInitialData(gameState: GameState, map: GameMap): void {
   // Znajdź pierwszą dostępną parcelę typu BuildingForSale i "kup" ją dla restauracji
   // Uwaga: nie ingerujemy w kasę gracza przy inicjalizacji — to tylko setup startowy.
   let placed = false;
+
+  // Szukamy konkretnie taniej działki (cena 100), która jest przeznaczona dla gracza na start
   for (let r = 0; r < map.rows && !placed; r++) {
     for (let c = 0; c < map.cols && !placed; c++) {
       const tile = map.getTile(r, c);
-      if (tile && tile.type === TileType.BuildingForSale) {
+      if (tile && tile.type === TileType.BuildingForSale && tile.price === 100) {
         map.purchaseBuilding(r, c, initialRestaurant.id);
         placed = true;
       }
+    }
+  }
+
+  // Fallback: jeśli nie znaleziono taniej, bierzemy pierwszą lepszą (dla bezpieczeństwa)
+  if (!placed) {
+    for (let r = 0; r < map.rows && !placed; r++) {
+        for (let c = 0; c < map.cols && !placed; c++) {
+        const tile = map.getTile(r, c);
+        if (tile && tile.type === TileType.BuildingForSale) {
+            map.purchaseBuilding(r, c, initialRestaurant.id);
+            placed = true;
+        }
+        }
     }
   }
 
