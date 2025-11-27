@@ -33,4 +33,22 @@ export const INGREDIENT_DEFINITIONS: IngredientDefinition[] = [
     baseCost: 0.3,
     type: IngredientType.Dough,
   },
+  {
+    id: 'salami',
+    name: 'Salami',
+    baseCost: 1.5,
+    type: IngredientType.Topping,
+  },
+  {
+    id: 'mushrooms',
+    name: 'Pieczarki',
+    baseCost: 1.0,
+    type: IngredientType.Vegetable,
+  },
+  {
+    id: 'peppers',
+    name: 'Papryka',
+    baseCost: 1.0,
+    type: IngredientType.Vegetable,
+  },
 ];
