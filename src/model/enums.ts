@@ -3,6 +3,7 @@ export enum IngredientType {
   Sauce,
   Cheese,
   Topping,
+  Vegetable
 }
 
 export enum EmployeeRole {
