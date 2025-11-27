@@ -1,11 +1,6 @@
-import { EmployeeRole, EmployeeState } from './enums';
+import { EmployeeRole, EmployeeState, OrderState, CustomerState } from './enums';
 import { Restaurant } from './Restaurant';
 import { Order } from './Order';
-import { Customer, CustomerState } from './Customer';
-import { EmployeeRole, EmployeeState, CustomerState, OrderState } from './enums';
-import { Restaurant } from './Restaurant';
-import { Order } from './Order';
-import { Customer } from './Customer';
 
 export class Employee {
   public gridX: number;
@@ -25,8 +20,6 @@ export class Employee {
     this.gridX = -1;
     this.gridY = -1;
     this.state = EmployeeState.Idle;
-
-    // Default asset key based on role
     this.assetKey = role === EmployeeRole.Chef ? 'chef' : 'waiter';
   }
 
@@ -42,11 +35,18 @@ export class Employee {
     const SPEED = 0.003 * dt;
 
     if (this.state === EmployeeState.Idle) {
-      // Find Pending order
-      const pendingOrder = restaurant.kitchenQueue.find(o => o.state === 'Pending');
+      // 1. Check for Pending Orders
       const pendingOrder = restaurant.kitchenQueue.find(o => o.state === OrderState.Pending);
+      
       if (pendingOrder) {
-        // Find oven that is not targeted by another chef
+        // 2. Supply Chain Check (Nowa logika!)
+        if (!restaurant.hasIngredientsFor(pendingOrder.pizza)) {
+            // Cannot cook, ignore this order or wait
+            // TODO: Add visual indicator "No Ingredients"
+            return; 
+        }
+
+        // 3. Find Available Oven
         const ovens = restaurant.furniture.filter(f => f.type === 'kitchen');
         const availableOven = ovens.find(oven => {
           const isTargeted = restaurant.employees.some(e =>
@@ -59,46 +59,33 @@ export class Employee {
         });
 
         if (availableOven) {
+          // Commit to order
           this.currentOrder = pendingOrder;
-          pendingOrder.state = 'Cooking';
+          restaurant.consumeIngredientsFor(pendingOrder.pizza); // Consume ingredients NOW
           pendingOrder.state = OrderState.Cooking;
+          
           this.state = EmployeeState.Walking;
           this.targetX = availableOven.gridX;
           this.targetY = availableOven.gridY;
         }
       }
     } else if (this.state === EmployeeState.Walking) {
-      // Move to target
-      const dx = this.targetX - this.gridX;
-      const dy = this.targetY - this.gridY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < 0.1) {
-        this.gridX = this.targetX;
-        this.gridY = this.targetY;
-        // If we were walking to cook
-        if (this.currentOrder && this.currentOrder.state === 'Cooking') {
-        if (this.currentOrder && this.currentOrder.state === OrderState.Cooking) {
+      this.moveTowardsTarget(SPEED);
+      if (this.atTarget()) {
+         if (this.currentOrder && this.currentOrder.state === OrderState.Cooking) {
            this.state = EmployeeState.Working;
-        }
-      } else {
-        this.gridX += (dx / dist) * SPEED;
-        this.gridY += (dy / dist) * SPEED;
+         } else {
+           this.state = EmployeeState.Idle;
+         }
       }
     } else if (this.state === EmployeeState.Working) {
-      // Cook
       if (this.currentOrder) {
-        this.currentOrder.progress += (dt * 0.05); // Cooking speed
-        if (this.currentOrder.progress >= 100) {
-          this.currentOrder.progress = 100;
-          this.currentOrder.state = 'Ready';
+        this.currentOrder.progress += (dt * 0.05); 
         if (this.currentOrder.progress >= this.currentOrder.maxProgress) {
           this.currentOrder.progress = this.currentOrder.maxProgress;
           this.currentOrder.state = OrderState.Ready;
 
-          // Move to ready counter
           restaurant.readyCounter.push(this.currentOrder);
-          // Remove from kitchen queue
           restaurant.kitchenQueue = restaurant.kitchenQueue.filter(o => o.id !== this.currentOrder!.id);
 
           this.currentOrder = null;
@@ -114,132 +101,76 @@ export class Employee {
     const SPEED = 0.003 * dt;
 
     if (this.state === EmployeeState.Idle) {
-      // Check ready counter for orders that are NOT being delivered yet
-      const readyOrder = restaurant.readyCounter.find(o => o.state === 'Ready');
-      if (readyOrder) {
-        // Take it and mark as Delivering immediately to prevent race conditions
-        readyOrder.state = 'Delivering';
-        this.currentOrder = readyOrder;
-
-        // Find customer
-        const customer = restaurant.customers.find(c => c.id === readyOrder.customerId);
-        if (customer) {
-            this.state = EmployeeState.Walking;
-            this.targetX = customer.gridX;
-            this.targetY = customer.gridY;
-        } else {
-            // Customer left? Discard order
-             restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== readyOrder.id);
-             this.currentOrder = null;
-        }
-      }
-    } else if (this.state === EmployeeState.Walking) {
-       // Move to target (Customer)
-      // Check ready counter for orders that are NOT being delivered yet (implicit by 'Ready' state check,
-      // since we change it immediately or if we use Delivered state)
-      // Actually, plan says: "Waiters pick up Ready orders... (Simplify: As soon as they reach counter...)"
-      // User Logic: "Jeśli `Idle` i `restaurant.readyCounter` ma element -> Idź do lady (tam gdzie pizza)."
-      // Simplification: "Jak dojdzie do lady, natychmiast 'bierze' pizzę i idzie do klienta"
-
       const readyOrder = restaurant.readyCounter.find(o => o.state === OrderState.Ready);
       if (readyOrder) {
-        // We need to target the counter first?
-        // User instructions: "Zmień stan na Walking do lady".
-        // Where is the counter? Maybe 'kitchen' type or separate 'counter' type?
-        // Current 'kitchen' furniture serves as oven. Let's assume for now they walk to the Chef's position or the 'kitchen' block.
-        // Let's find ANY kitchen block for pickup.
+        // Assumption: Kitchen/Counter is where the Chef is, or any 'kitchen' furniture
+        // For simplicity, finding any kitchen furniture to pickup from
         const counter = restaurant.furniture.find(f => f.type === 'kitchen');
-
         if (counter) {
             this.state = EmployeeState.Walking;
             this.targetX = counter.gridX;
             this.targetY = counter.gridY;
-
-            // We "reserve" the order so other waiters don't run for it?
-            // The user didn't specify strict reservation logic for walking to counter, but for robustness:
-            // Let's just walk there. The "pick up" happens when we arrive.
-            // Problem: If 2 waiters walk, first one takes it. Second one arrives and finds nothing -> Idle.
-            // Optimization: Maybe target the specific order? But order doesn't have a position.
-
-            // Let's just store we are going for *an* order.
+            // Note: We are NOT taking the order yet, just walking there
         }
       }
     } else if (this.state === EmployeeState.Walking) {
-       // Move to target
-      const dx = this.targetX - this.gridX;
-      const dy = this.targetY - this.gridY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < 0.1) {
-        this.gridX = this.targetX;
-        this.gridY = this.targetY;
-
-        // Delivered
-        if (this.currentOrder) {
-        // Check what we are doing based on currentOrder or lack thereof
-
-        // 1. Arrived at Counter (no order yet)
+      this.moveTowardsTarget(SPEED);
+      
+      if (this.atTarget()) {
+        // --- Arrived at Destination ---
+        
+        // Scenario A: Arrived at Kitchen (Pick up food)
         if (!this.currentOrder) {
-            // Try to pick up
             const readyOrder = restaurant.readyCounter.find(o => o.state === OrderState.Ready);
             if (readyOrder) {
-                // Pick up
                 this.currentOrder = readyOrder;
-                // readyOrder.state = OrderState.Served; // Wait, "Served" is when delivered? Or "Delivering"?
-                // User didn't specify "Delivering" state in Priority 1, only Pending, Cooking, Ready, Served.
-                // So we keep it as Ready or remove from counter?
-                // User says: "Jak dojdzie do klienta: Usuń order z systemu."
-                // So while walking to customer, it's technically still in system?
-                // Let's remove from readyCounter NOW to prevent others from taking it.
+                // Remove from counter immediately so others don't take it
                 restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== readyOrder.id);
-
-                // Find Customer
+                
                 const customer = restaurant.customers.find(c => c.id === readyOrder.customerId);
                 if (customer) {
                     this.targetX = customer.gridX;
                     this.targetY = customer.gridY;
-                    this.state = EmployeeState.Walking; // Keep walking, new target
+                    // Stay in Walking state, just changed target
                 } else {
-                    // Customer gone
+                    // Customer vanished? Abort.
                     this.currentOrder = null;
                     this.state = EmployeeState.Idle;
                 }
             } else {
-                // Too late, someone took it
+                // Someone else took it
                 this.state = EmployeeState.Idle;
             }
-        }
-        // 2. Arrived at Customer (has order)
+        } 
+        // Scenario B: Arrived at Customer (Deliver food)
         else {
              const customer = restaurant.customers.find(c => c.id === this.currentOrder!.customerId);
              if (customer && customer.state === CustomerState.WaitingForFood) {
                  customer.state = CustomerState.Eating;
                  customer.eatingTimer = 3000;
-                 this.currentOrder.state = 'Served';
-
-                 // Remove from ready counter
-                 restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== this.currentOrder!.id);
-
-                 // Order is done
                  this.currentOrder.state = OrderState.Served;
                  this.currentOrder = null;
-                 this.state = EmployeeState.Idle;
-             } else {
-                 // Customer gone or state changed
-                 restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== this.currentOrder!.id);
-                 this.currentOrder = null;
-                 this.state = EmployeeState.Idle;
              }
-        } else {
-            this.state = EmployeeState.Idle;
-                 this.currentOrder = null;
-                 this.state = EmployeeState.Idle;
-             }
+             this.state = EmployeeState.Idle;
         }
-      } else {
-        this.gridX += (dx / dist) * SPEED;
-        this.gridY += (dy / dist) * SPEED;
       }
     }
+  }
+
+  // Helper for movement
+  private moveTowardsTarget(speed: number) {
+      const dx = this.targetX - this.gridX;
+      const dy = this.targetY - this.gridY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 0.1) {
+        this.gridX += (dx / dist) * speed;
+        this.gridY += (dy / dist) * speed;
+      }
+  }
+
+  private atTarget(): boolean {
+      const dx = this.targetX - this.gridX;
+      const dy = this.targetY - this.gridY;
+      return Math.sqrt(dx * dx + dy * dy) < 0.1;
   }
 }
