@@ -1,3 +1,7 @@
+import { EmployeeRole, EmployeeState } from './enums';
+import { Restaurant } from './Restaurant';
+import { Order } from './Order';
+import { Customer, CustomerState } from './Customer';
 import { EmployeeRole, EmployeeState, CustomerState, OrderState } from './enums';
 import { Restaurant } from './Restaurant';
 import { Order } from './Order';
@@ -39,6 +43,7 @@ export class Employee {
 
     if (this.state === EmployeeState.Idle) {
       // Find Pending order
+      const pendingOrder = restaurant.kitchenQueue.find(o => o.state === 'Pending');
       const pendingOrder = restaurant.kitchenQueue.find(o => o.state === OrderState.Pending);
       if (pendingOrder) {
         // Find oven that is not targeted by another chef
@@ -55,6 +60,7 @@ export class Employee {
 
         if (availableOven) {
           this.currentOrder = pendingOrder;
+          pendingOrder.state = 'Cooking';
           pendingOrder.state = OrderState.Cooking;
           this.state = EmployeeState.Walking;
           this.targetX = availableOven.gridX;
@@ -71,6 +77,7 @@ export class Employee {
         this.gridX = this.targetX;
         this.gridY = this.targetY;
         // If we were walking to cook
+        if (this.currentOrder && this.currentOrder.state === 'Cooking') {
         if (this.currentOrder && this.currentOrder.state === OrderState.Cooking) {
            this.state = EmployeeState.Working;
         }
@@ -82,6 +89,9 @@ export class Employee {
       // Cook
       if (this.currentOrder) {
         this.currentOrder.progress += (dt * 0.05); // Cooking speed
+        if (this.currentOrder.progress >= 100) {
+          this.currentOrder.progress = 100;
+          this.currentOrder.state = 'Ready';
         if (this.currentOrder.progress >= this.currentOrder.maxProgress) {
           this.currentOrder.progress = this.currentOrder.maxProgress;
           this.currentOrder.state = OrderState.Ready;
@@ -104,6 +114,27 @@ export class Employee {
     const SPEED = 0.003 * dt;
 
     if (this.state === EmployeeState.Idle) {
+      // Check ready counter for orders that are NOT being delivered yet
+      const readyOrder = restaurant.readyCounter.find(o => o.state === 'Ready');
+      if (readyOrder) {
+        // Take it and mark as Delivering immediately to prevent race conditions
+        readyOrder.state = 'Delivering';
+        this.currentOrder = readyOrder;
+
+        // Find customer
+        const customer = restaurant.customers.find(c => c.id === readyOrder.customerId);
+        if (customer) {
+            this.state = EmployeeState.Walking;
+            this.targetX = customer.gridX;
+            this.targetY = customer.gridY;
+        } else {
+            // Customer left? Discard order
+             restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== readyOrder.id);
+             this.currentOrder = null;
+        }
+      }
+    } else if (this.state === EmployeeState.Walking) {
+       // Move to target (Customer)
       // Check ready counter for orders that are NOT being delivered yet (implicit by 'Ready' state check,
       // since we change it immediately or if we use Delivered state)
       // Actually, plan says: "Waiters pick up Ready orders... (Simplify: As soon as they reach counter...)"
@@ -143,6 +174,8 @@ export class Employee {
         this.gridX = this.targetX;
         this.gridY = this.targetY;
 
+        // Delivered
+        if (this.currentOrder) {
         // Check what we are doing based on currentOrder or lack thereof
 
         // 1. Arrived at Counter (no order yet)
@@ -182,6 +215,10 @@ export class Employee {
              if (customer && customer.state === CustomerState.WaitingForFood) {
                  customer.state = CustomerState.Eating;
                  customer.eatingTimer = 3000;
+                 this.currentOrder.state = 'Served';
+
+                 // Remove from ready counter
+                 restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== this.currentOrder!.id);
 
                  // Order is done
                  this.currentOrder.state = OrderState.Served;
@@ -189,6 +226,12 @@ export class Employee {
                  this.state = EmployeeState.Idle;
              } else {
                  // Customer gone or state changed
+                 restaurant.readyCounter = restaurant.readyCounter.filter(o => o.id !== this.currentOrder!.id);
+                 this.currentOrder = null;
+                 this.state = EmployeeState.Idle;
+             }
+        } else {
+            this.state = EmployeeState.Idle;
                  this.currentOrder = null;
                  this.state = EmployeeState.Idle;
              }

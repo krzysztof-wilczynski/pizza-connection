@@ -3,6 +3,7 @@ import { Ingredient } from './Ingredient';
 import { Pizza } from './Pizza';
 import { Employee } from './Employee';
 import { Furniture, PlacedFurniture } from './Furniture';
+import { Customer, CustomerState } from './Customer';
 import { Customer } from './Customer';
 import { CustomerState, OrderState } from './enums';
 import { Order } from './Order';
@@ -100,6 +101,7 @@ export class Restaurant {
       if (this.menu.length > 0) {
         const randomPizza = this.menu[Math.floor(Math.random() * this.menu.length)];
         // Create Order
+        const newOrder = new Order(uuidv4(), randomPizza, customer.id, 'Pending', 0);
         const newOrder: Order = {
             id: uuidv4(),
             pizza: randomPizza,

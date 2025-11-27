@@ -1,4 +1,12 @@
 import { Pizza } from './Pizza';
+
+export enum CustomerState {
+  Arriving,
+  Seated,
+  WaitingForFood,
+  Eating,
+  Leaving
+}
 import { CustomerState } from './enums';
 
 export class Customer {

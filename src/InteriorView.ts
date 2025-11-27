@@ -6,6 +6,8 @@ import { Restaurant } from './model/Restaurant';
 import { AssetManager } from './AssetManager';
 import { GameState } from './model/GameState';
 import { Employee } from './model/Employee';
+import { Customer, CustomerState } from './model/Customer';
+import { EmployeeRole, EmployeeState } from './model/enums';
 import { Customer } from './model/Customer';
 import { EmployeeRole, EmployeeState, CustomerState } from './model/enums';
 
@@ -295,6 +297,11 @@ export class InteriorView {
             this.ctx.fillRect(barX, barY, barWidth, barHeight);
 
             this.ctx.fillStyle = '#0f0';
+            this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / 100), barHeight);
+        }
+
+        // Waiter: Walking with food -> Pizza Icon
+        if (employee.role === EmployeeRole.Waiter && employee.currentOrder && employee.state === EmployeeState.Walking) {
             this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / employee.currentOrder.maxProgress), barHeight);
         }
 
