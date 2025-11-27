@@ -6,8 +6,8 @@ import { Restaurant } from './model/Restaurant';
 import { AssetManager } from './AssetManager';
 import { GameState } from './model/GameState';
 import { Employee } from './model/Employee';
-import { Customer } from './model/Customer';
-import { EmployeeRole } from './model/enums';
+import { Customer, CustomerState } from './model/Customer';
+import { EmployeeRole, EmployeeState } from './model/enums';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
@@ -272,15 +272,43 @@ export class InteriorView {
         const img = this.assetManager.getAsset(employee.assetKey);
         const screenPos = gridToScreen(employee.gridX, employee.gridY);
 
+        const drawX = img && img.naturalWidth > 0 ? screenPos.x - img.naturalWidth / 2 : screenPos.x - 10;
+        const drawY = img && img.naturalWidth > 0 ? screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight : screenPos.y - 40;
+
         if (img && img.naturalWidth > 0) {
-            // Draw centered on tile
-            const drawX = screenPos.x - img.naturalWidth / 2;
-            const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
             this.ctx.drawImage(img, drawX, drawY);
         } else {
              // Fallback rectangle
              this.ctx.fillStyle = employee.role === EmployeeRole.Chef ? 'white' : 'black';
-             this.ctx.fillRect(screenPos.x - 10, screenPos.y - 40, 20, 40);
+             this.ctx.fillRect(drawX, drawY, 20, 40);
+        }
+
+        // --- Visual Indicators ---
+        // Chef: Working -> Progress Bar
+        if (employee.role === EmployeeRole.Chef && employee.state === EmployeeState.Working && employee.currentOrder) {
+            const barWidth = 40;
+            const barHeight = 5;
+            const barX = screenPos.x - barWidth / 2;
+            const barY = drawY - 10;
+
+            this.ctx.fillStyle = '#555';
+            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            this.ctx.fillStyle = '#0f0';
+            this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / 100), barHeight);
+        }
+
+        // Waiter: Walking with food -> Pizza Icon
+        if (employee.role === EmployeeRole.Waiter && employee.currentOrder && employee.state === EmployeeState.Walking) {
+            const pizzaIcon = this.assetManager.getAsset('pizza_icon'); // Assumption: asset exists or we draw circle
+            if (pizzaIcon && pizzaIcon.naturalWidth > 0) {
+                 this.ctx.drawImage(pizzaIcon, screenPos.x, drawY - 20, 20, 20);
+            } else {
+                this.ctx.fillStyle = 'orange';
+                this.ctx.beginPath();
+                this.ctx.arc(screenPos.x, drawY - 20, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
         }
     }
 
@@ -288,14 +316,34 @@ export class InteriorView {
         const img = this.assetManager.getAsset(customer.assetKey);
         const screenPos = gridToScreen(customer.gridX, customer.gridY);
 
+        const drawX = img && img.naturalWidth > 0 ? screenPos.x - img.naturalWidth / 2 : screenPos.x - 10;
+        const drawY = img && img.naturalWidth > 0 ? screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight : screenPos.y - 40;
+
         if (img && img.naturalWidth > 0) {
-            const drawX = screenPos.x - img.naturalWidth / 2;
-            const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
             this.ctx.drawImage(img, drawX, drawY);
         } else {
             // Fallback for customer
             this.ctx.fillStyle = 'blue';
-            this.ctx.fillRect(screenPos.x - 10, screenPos.y - 40, 20, 40);
+            this.ctx.fillRect(drawX, drawY, 20, 40);
+        }
+
+        // --- Visual Indicators ---
+        // WaitingForFood -> Clock/Icon
+        if (customer.state === CustomerState.WaitingForFood) {
+            this.ctx.fillStyle = 'white';
+            this.ctx.beginPath();
+            this.ctx.arc(screenPos.x, drawY - 15, 8, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw clock hands (static for now)
+            this.ctx.strokeStyle = 'black';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(screenPos.x, drawY - 15);
+            this.ctx.lineTo(screenPos.x, drawY - 20);
+            this.ctx.moveTo(screenPos.x, drawY - 15);
+            this.ctx.lineTo(screenPos.x + 4, drawY - 15);
+            this.ctx.stroke();
         }
     }
 

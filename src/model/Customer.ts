@@ -4,6 +4,7 @@ import { Pizza } from './Pizza';
 export enum CustomerState {
   Arriving,
   Seated,
+  WaitingForFood,
   Eating,
   Leaving
 }
