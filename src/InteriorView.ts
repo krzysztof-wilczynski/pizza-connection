@@ -50,7 +50,7 @@ export class InteriorView {
     }
 
     public update(deltaTime: number): void {
-        // Interior-specific update logic
+        this.activeRestaurant.update(deltaTime);
     }
 
     public render(): void {
@@ -135,6 +135,14 @@ export class InteriorView {
         this.ctx.fillText('Otwórz Kreator Pizzy', 110, 40);
         this.ctx.textAlign = 'left';
 
+        // Money HUD
+        const money = GameState.getInstance().player.money;
+        this.ctx.fillStyle = '#f1c40f'; // Gold color
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(`$${money.toLocaleString()}`, this.ctx.canvas.width / 2, 35);
+        this.ctx.textAlign = 'left';
+
         this.drawBackButton();
         this.drawTabButtons();
         if (this.activeTab === 'furniture') {
@@ -191,8 +199,19 @@ export class InteriorView {
             this.ctx.fillStyle = '#555';
             this.ctx.fillRect(panelX + FURNITURE_ITEM_MARGIN, itemY, FURNITURE_PANEL_WIDTH - 2 * FURNITURE_ITEM_MARGIN, FURNITURE_ITEM_HEIGHT);
 
-            this.ctx.fillStyle = item.color;
-            this.ctx.fillRect(panelX + FURNITURE_ITEM_MARGIN * 2, itemY + FURNITURE_ITEM_MARGIN, 40, 40);
+            // Icon
+            const img = this.assetManager.getAsset(item.assetKey);
+            const iconX = panelX + FURNITURE_ITEM_MARGIN * 2;
+            const iconY = itemY + FURNITURE_ITEM_MARGIN;
+            const iconSize = 40;
+
+            if (img && img.naturalWidth > 0) {
+                // Preserve aspect ratio or fit? Fit is safer for UI
+                this.ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+            } else {
+                this.ctx.fillStyle = item.color;
+                this.ctx.fillRect(iconX, iconY, iconSize, iconSize);
+            }
 
             const canAfford = playerMoney >= item.price;
             this.ctx.fillStyle = canAfford ? 'white' : '#ff4444';
@@ -326,12 +345,66 @@ export class InteriorView {
             }
         }
 
-        this.drawFurniture(gridX, gridY, this.selectedFurniture, isValid);
+        // Draw ghost
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.6;
+
+        // Draw the furniture visuals
+        this.drawFurniture(gridX, gridY, this.selectedFurniture, true); // Force 'true' here to draw normal colors first
+
+        // If invalid, overlay red
+        if (!isValid) {
+            // Re-calculate screen position (same logic as inside drawFurniture)
+            const img = this.assetManager.getAsset(this.selectedFurniture.assetKey);
+            const screenPos = gridToScreen(gridX, gridY);
+
+            this.ctx.globalCompositeOperation = 'source-atop'; // Only draw on top of existing pixels
+            this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+
+            if (img && img.naturalWidth > 0) {
+                 const drawX = screenPos.x - img.naturalWidth / 2;
+                 const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
+                 this.ctx.fillRect(drawX, drawY, img.naturalWidth, img.naturalHeight);
+            } else {
+                // Fallback rect logic if no image
+                 // This is complex to match exactly without duplicating code, so simple overlay:
+                 // We'll rely on drawFurniture's internal red fallback if we passed false,
+                 // but we wanted to "tint" the real asset.
+                 // Simplified approach: Just set tint.
+
+                 // Since drawFurniture restores context, we can't easily draw ON TOP of it inside this function without knowing exact bounds.
+                 // Let's retry:
+                 // We will modify drawFurniture to handle a "tint" or we just draw a red rect over the area roughly.
+            }
+
+            // Simpler approach requested:
+            // "Jeśli !isValid (kolizja): nałóż czerwoną maskę (ctx.globalCompositeOperation lub proste wypełnienie rgba(255, 0, 0, 0.5))."
+            // The issue is getting the exact shape of the isometric sprite for the mask.
+            // Let's use source-atop on a second draw call? No, that's heavy.
+            // Let's keep it simple: Draw a red diamond at the base.
+
+            const p1 = gridToScreen(gridX, gridY);
+            const p2 = gridToScreen(gridX + this.selectedFurniture.width, gridY);
+            const p3 = gridToScreen(gridX + this.selectedFurniture.width, gridY + this.selectedFurniture.height);
+            const p4 = gridToScreen(gridX, gridY + this.selectedFurniture.height);
+
+            this.ctx.globalCompositeOperation = 'source-over';
+            this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            this.ctx.beginPath();
+            this.ctx.moveTo(p1.x, p1.y);
+            this.ctx.lineTo(p2.x, p2.y);
+            this.ctx.lineTo(p3.x, p3.y);
+            this.ctx.lineTo(p4.x, p4.y);
+            this.ctx.closePath();
+            this.ctx.fill();
+        }
+
+        this.ctx.restore();
     }
 
     private drawBackButton(): void {
         const x = BACK_BUTTON_MARGIN;
-        const y = BACK_BUTTON_MARGIN;
+        const y = this.ctx.canvas.height - BACK_BUTTON_HEIGHT - BACK_BUTTON_MARGIN;
         this.ctx.fillStyle = '#4CAF50';
         this.ctx.fillRect(x, y, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT);
         this.ctx.fillStyle = 'white';
@@ -514,8 +587,9 @@ export class InteriorView {
         const clickX = event.clientX - rect.left;
         const clickY = event.clientY - rect.top;
 
+        const backBtnY = this.ctx.canvas.height - BACK_BUTTON_HEIGHT - BACK_BUTTON_MARGIN;
         if (clickX >= BACK_BUTTON_MARGIN && clickX <= BACK_BUTTON_MARGIN + BACK_BUTTON_WIDTH &&
-            clickY >= BACK_BUTTON_MARGIN && clickY <= BACK_BUTTON_MARGIN + BACK_BUTTON_HEIGHT) {
+            clickY >= backBtnY && clickY <= backBtnY + BACK_BUTTON_HEIGHT) {
             changeView(null);
             return;
         }

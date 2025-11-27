@@ -13,7 +13,7 @@ export class GameState {
   private constructor() {
     this.gameDate = new Date(); // Initial game date
     this.restaurants = [];
-    this.player = new Player(50000); // Starting money
+    this.player = new Player(500000); // Starting money
     this.ingredients = new Map();
   }
 

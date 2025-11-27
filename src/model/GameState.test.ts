@@ -18,8 +18,8 @@ describe('GameState', () => {
     expect(gameState).toBe(anotherGameState);
   });
 
-  it('should start with a player with 50000 money', () => {
-    expect(gameState.player.money).toBe(50000);
+  it('should start with a player with 500000 money', () => {
+    expect(gameState.player.money).toBe(500000);
   });
 
   it('should add a restaurant', () => {
