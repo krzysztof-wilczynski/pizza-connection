@@ -23,9 +23,9 @@
         <div class='clearfix'>
 
             <div class='fl pad1y space-right2'>
-                <span class="strong">42.3% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>11/26</span>
+                <span class='fraction'>0/13</span>
             </div>
 
 
@@ -37,16 +37,16 @@
 
 
             <div class='fl pad1y space-right2'>
-                <span class="strong">40% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/5</span>
+                <span class='fraction'>0/4</span>
             </div>
 
 
             <div class='fl pad1y space-right2'>
-                <span class="strong">43.75% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/16</span>
+                <span class='fraction'>0/12</span>
             </div>
 
 
@@ -105,29 +105,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -139,29 +139,29 @@ export class UIManager {
     private buyButton: HTMLElement;
     private cancelButton: HTMLElement;
 &nbsp;
-    constructor() {
-        this.purchasePanel = document.getElementById('purchase-ui')!;
-        this.priceSpan = document.getElementById('property-price')!;
-        this.buyButton = document.getElementById('buy-button')!;
-        this.cancelButton = document.getElementById('cancel-button')!;
+<span class="fstat-no" title="function not covered" >    constructor() {</span>
+<span class="cstat-no" title="statement not covered" >        this.purchasePanel = document.getElementById('purchase-ui')!;</span>
+<span class="cstat-no" title="statement not covered" >        this.priceSpan = document.getElementById('property-price')!;</span>
+<span class="cstat-no" title="statement not covered" >        this.buyButton = document.getElementById('buy-button')!;</span>
+<span class="cstat-no" title="statement not covered" >        this.cancelButton = document.getElementById('cancel-button')!;</span>
 &nbsp;
-        this.cancelButton.addEventListener('click', <span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" >t</span>his.h</span>idePurchasePanel());</span>
+<span class="cstat-no" title="statement not covered" >        this.cancelButton.addEventListener('click', <span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >t</span>his.hidePurchasePanel())</span>;</span>
     }
 &nbsp;
-    public <span class="fstat-no" title="function not covered" >showPurchasePanel(p</span>rice: number, onBuy: () =&gt; void): void <span class="cstat-no" title="statement not covered" >{</span>
+    public <span class="fstat-no" title="function not covered" >showPurchasePanel(p</span>rice: number, onBuy: () =&gt; void): void {
 <span class="cstat-no" title="statement not covered" >        this.priceSpan.textContent = `$${price.toLocaleString()}`;</span>
 
         // Clone and replace the button to remove old event listeners
-        const <span class="cstat-no" title="statement not covered" >newBuyButton = this.buyButton.cloneNode(true<span class="cstat-no" title="statement not covered" >);</span></span>
-<span class="cstat-no" title="statement not covered" >        this.buyButton.parentNode!.replaceChild(newBuyButton, this.buyButton<span class="cstat-no" title="statement not covered" >);</span></span>
-<span class="cstat-no" title="statement not covered" >        this.buyButton = <span class="cstat-no" title="statement not covered" >newBuyButton as HTMLElement;</span></span>
+        const newBuyButton = <span class="cstat-no" title="statement not covered" >this.buyButton.cloneNode(true);</span>
+<span class="cstat-no" title="statement not covered" >        this.buyButton.parentNode!.replaceChild(newBuyButton, this.buyButton);</span>
+<span class="cstat-no" title="statement not covered" >        this.buyButton = newBuyButton as HTMLElement;</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.buyButton.addEventListener('click', onBuy<span class="cstat-no" title="statement not covered" >);</span></span>
+<span class="cstat-no" title="statement not covered" >        this.buyButton.addEventListener('click', onBuy);</span>
 
 <span class="cstat-no" title="statement not covered" >        this.purchasePanel.style.display = 'block';</span>
     }
 &nbsp;
-    public <span class="fstat-no" title="function not covered" >hidePurchasePanel(): void <span class="cstat-no" title="statement not covered" >{</span></span>
+    public <span class="fstat-no" title="function not covered" >hidePurchasePanel(): void {</span>
 <span class="cstat-no" title="statement not covered" >        this.purchasePanel.style.display = 'none';</span>
     }
 }
@@ -172,7 +172,7 @@ export class UIManager {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-27T01:41:24.485Z
+                at 2025-11-27T19:34:36.405Z
             </div>
         <script src="../prettify.js"></script>
         <script>

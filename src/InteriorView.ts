@@ -1,9 +1,10 @@
-// src/InteriorView.ts
 import { gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
-import { Furniture, PlacedFurniture } from './model/Furniture';
+import { Furniture } from './model/Furniture';
+import { FURNITURE_CATALOG } from './model/FurnitureCatalog';
 import { PizzaCreator } from './PizzaCreator';
-import { Tile } from './model/Tile';
+import { Restaurant } from './model/Restaurant';
 import { AssetManager } from './AssetManager';
+import { GameState } from './model/GameState';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
@@ -13,30 +14,23 @@ const FURNITURE_PANEL_WIDTH = 250;
 const FURNITURE_ITEM_HEIGHT = 60;
 const FURNITURE_ITEM_MARGIN = 10;
 
-const AVAILABLE_FURNITURE: Furniture[] = [
-    { id: 1, name: 'Stolik', assetKey: 'table', width: 2, height: 1, color: '#8B4513' },
-    { id: 2, name: 'Piec', assetKey: 'oven', width: 2, height: 2, color: '#2F4F4F' },
-    { id: 3, name: 'Lada', assetKey: 'table', width: 3, height: 1, color: '#A0522D' },
-];
-
 export class InteriorView {
     private ctx: CanvasRenderingContext2D;
-    private activeBuilding: Tile;
+    private activeRestaurant: Restaurant;
     private pizzaCreator: PizzaCreator;
     private assetManager: AssetManager;
 
-    private placedFurniture: PlacedFurniture[] = [];
     private selectedFurniture: Furniture | null = null;
     private mousePosition = { x: 0, y: 0 };
 
     constructor(
         ctx: CanvasRenderingContext2D,
-        activeBuilding: Tile,
+        activeRestaurant: Restaurant,
         pizzaCreator: PizzaCreator,
         assetManager: AssetManager
     ) {
         this.ctx = ctx;
-        this.activeBuilding = activeBuilding;
+        this.activeRestaurant = activeRestaurant;
         this.pizzaCreator = pizzaCreator;
         this.assetManager = assetManager;
     }
@@ -63,7 +57,7 @@ export class InteriorView {
             }
         }
 
-        this.placedFurniture.forEach(f => {
+        this.activeRestaurant.furniture.forEach(f => {
             this.drawFurniture(f.gridX, f.gridY, f);
         });
 
@@ -95,17 +89,26 @@ export class InteriorView {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.ctx.fillRect(panelX, panelY, FURNITURE_PANEL_WIDTH, this.ctx.canvas.height);
 
-        AVAILABLE_FURNITURE.forEach((item, index) => {
+        const playerMoney = GameState.getInstance().player.money;
+
+        FURNITURE_CATALOG.forEach((item, index) => {
             const itemY = panelY + (FURNITURE_ITEM_HEIGHT + FURNITURE_ITEM_MARGIN) * index + FURNITURE_ITEM_MARGIN;
             this.ctx.fillStyle = '#555';
             this.ctx.fillRect(panelX + FURNITURE_ITEM_MARGIN, itemY, FURNITURE_PANEL_WIDTH - 2 * FURNITURE_ITEM_MARGIN, FURNITURE_ITEM_HEIGHT);
+
             this.ctx.fillStyle = item.color;
             this.ctx.fillRect(panelX + FURNITURE_ITEM_MARGIN * 2, itemY + FURNITURE_ITEM_MARGIN, 40, 40);
-            this.ctx.fillStyle = 'white';
-            this.ctx.font = '18px Arial';
+
+            const canAfford = playerMoney >= item.price;
+            this.ctx.fillStyle = canAfford ? 'white' : '#ff4444';
+            this.ctx.font = '16px Arial';
             this.ctx.textAlign = 'left';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(item.name, panelX + FURNITURE_ITEM_MARGIN * 3 + 40, itemY + FURNITURE_ITEM_HEIGHT / 2);
+            this.ctx.textBaseline = 'top';
+            this.ctx.fillText(item.name, panelX + FURNITURE_ITEM_MARGIN * 3 + 40, itemY + FURNITURE_ITEM_MARGIN);
+
+            this.ctx.font = '14px Arial';
+            this.ctx.fillStyle = canAfford ? '#ccc' : '#ff4444';
+            this.ctx.fillText(`$${item.price}`, panelX + FURNITURE_ITEM_MARGIN * 3 + 40, itemY + FURNITURE_ITEM_MARGIN + 20);
         });
     }
 
@@ -117,7 +120,24 @@ export class InteriorView {
         const gridPos = screenToGrid(screenX, screenY);
         const gridX = Math.floor(gridPos.x);
         const gridY = Math.floor(gridPos.y);
-        const isValid = this.isPositionValid(gridX, gridY, this.selectedFurniture);
+
+        let isValid = true;
+         if (gridX < 0 || gridY < 0 || gridX + this.selectedFurniture.width > 10 || gridY + this.selectedFurniture.height > 10) {
+            isValid = false;
+        } else {
+             for (const placed of this.activeRestaurant.furniture) {
+                if (
+                    gridX < placed.gridX + placed.width &&
+                    gridX + this.selectedFurniture.width > placed.gridX &&
+                    gridY < placed.gridY + placed.height &&
+                    gridY + this.selectedFurniture.height > placed.gridY
+                ) {
+                    isValid = false;
+                    break;
+                }
+            }
+        }
+
         this.drawFurniture(gridX, gridY, this.selectedFurniture, isValid);
     }
 
@@ -144,17 +164,16 @@ export class InteriorView {
             this.ctx.drawImage(img, drawX, drawY);
             this.ctx.globalAlpha = 1.0;
         } else {
-            // Fallback to procedural drawing
             this.ctx.globalAlpha = isValid ? 1.0 : 0.5;
             this.ctx.fillStyle = isValid ? furniture.color : 'red';
             for (let row = 0; row < furniture.height; row++) {
                 for (let col = 0; col < furniture.width; col++) {
-                    const tileScreenPos = gridToScreen(x + col, y + row);
+                    const tPos = gridToScreen(x + col, y + row);
                     this.ctx.beginPath();
-                    this.ctx.moveTo(tileScreenPos.x, tileScreenPos.y);
-                    this.ctx.lineTo(tileScreenPos.x + TILE_WIDTH_HALF, tileScreenPos.y + TILE_HEIGHT_HALF);
-                    this.ctx.lineTo(tileScreenPos.x, tileScreenPos.y + TILE_HEIGHT_HALF * 2);
-                    this.ctx.lineTo(tileScreenPos.x - TILE_WIDTH_HALF, tileScreenPos.y + TILE_HEIGHT_HALF);
+                    this.ctx.moveTo(tPos.x, tPos.y);
+                    this.ctx.lineTo(tPos.x + TILE_WIDTH_HALF, tPos.y + TILE_HEIGHT_HALF);
+                    this.ctx.lineTo(tPos.x, tPos.y + TILE_HEIGHT_HALF * 2);
+                    this.ctx.lineTo(tPos.x - TILE_WIDTH_HALF, tPos.y + TILE_HEIGHT_HALF);
                     this.ctx.closePath();
                     this.ctx.fill();
                 }
@@ -174,7 +193,7 @@ export class InteriorView {
             this.ctx.lineTo(x, y + TILE_HEIGHT_HALF * 2);
             this.ctx.lineTo(x - TILE_WIDTH_HALF, y + TILE_HEIGHT_HALF);
             this.ctx.closePath();
-            this.ctx.fillStyle = '#9c8256'; // Fallback floor color
+            this.ctx.fillStyle = '#9c8256';
             this.ctx.fill();
             this.ctx.strokeStyle = '#555';
             this.ctx.stroke();
@@ -200,7 +219,7 @@ export class InteriorView {
 
         const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
         if (clickX >= panelX) {
-            AVAILABLE_FURNITURE.forEach((item, i) => {
+            FURNITURE_CATALOG.forEach((item, i) => {
                 const itemY = (FURNITURE_ITEM_HEIGHT + FURNITURE_ITEM_MARGIN) * i + FURNITURE_ITEM_MARGIN;
                 if (clickY >= itemY && clickY <= itemY + FURNITURE_ITEM_HEIGHT) {
                     this.selectedFurniture = { ...item };
@@ -222,23 +241,21 @@ export class InteriorView {
             const gridX = Math.floor(gridPos.x);
             const gridY = Math.floor(gridPos.y);
 
-            if (this.isPositionValid(gridX, gridY, this.selectedFurniture)) {
-                this.placedFurniture.push({ ...this.selectedFurniture, gridX, gridY });
-                this.selectedFurniture = null;
+            const player = GameState.getInstance().player;
+            if (player.money >= this.selectedFurniture.price) {
+                const success = this.activeRestaurant.addFurniture(this.selectedFurniture, gridX, gridY);
+                if (success) {
+                    player.spendMoney(this.selectedFurniture.price);
+                    console.log("Cha-ching!");
+                    this.selectedFurniture = null;
+                }
+            } else {
+                console.log("Not enough money");
             }
         }
     }
 
-    private isPositionValid(gridX: number, gridY: number, furniture: Furniture): boolean {
-        if (gridX < 0 || gridY < 0 || gridX + furniture.width > 10 || gridY + furniture.height > 10) {
-            return false;
-        }
-        for (const placed of this.placedFurniture) {
-            if (gridX < placed.gridX + placed.width && gridX + furniture.width > placed.gridX &&
-                gridY < placed.gridY + placed.height && gridY + furniture.height > placed.gridY) {
-                return false;
-            }
-        }
-        return true;
+    public hideUI(): void {
+        // Placeholder implementation
     }
 }

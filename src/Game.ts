@@ -4,8 +4,8 @@ import { PizzaCreator } from './PizzaCreator';
 import { UIManager } from './UIManager';
 import { GameState } from './model/GameState';
 import { loadInitialData } from './model/initialData';
-import { GameView } from './model/enums';
-import { Tile } from './model/Tile';
+import { GameView, TileType } from './model/enums';
+import { Tile, BuildingOwnedTile } from './model/Tile';
 import { CityView } from './CityView';
 import { InteriorView } from './InteriorView';
 
@@ -64,6 +64,7 @@ export class Game {
             { key: 'oven', path: '/assets/restaurant/kitchen/oven.svg' },
             { key: 'table', path: '/assets/restaurant/interior/table.svg' },
             { key: 'chair', path: '/assets/restaurant/interior/chair.svg' },
+            { key: 'plant', path: '/assets/restaurant/interior/plant.svg' },
             { key: 'pizza_base', path: '/assets/pizza/ciasto.svg' },
             { key: 'building_sale', path: '/assets/city/residential/house.svg' },
             { key: 'building_owned', path: '/assets/city/commercial/restaurant.svg' },
@@ -127,11 +128,18 @@ export class Game {
     }
 
     private handleMouseClick(event: MouseEvent): void {
-        const changeViewCallback = (newView: any) => {
-            if (this.currentView === GameView.City) {
-                this.activeBuilding = newView;
-                this.interiorView = new InteriorView(this.ctx, this.activeBuilding!, this.pizzaCreator, this.assetManager);
-                this.currentView = GameView.Interior;
+        const changeViewCallback = (newView: Tile | null) => {
+            if (this.currentView === GameView.City && newView) {
+                if (newView.type === TileType.BuildingOwned) {
+                    const ownedTile = newView as BuildingOwnedTile;
+                    const restaurant = this.gameState.restaurants.find(r => r.id === ownedTile.restaurantId);
+
+                    if (restaurant) {
+                        this.activeBuilding = newView;
+                        this.interiorView = new InteriorView(this.ctx, restaurant, this.pizzaCreator, this.assetManager);
+                        this.currentView = GameView.Interior;
+                    }
+                }
             } else {
                 this.interiorView?.hideUI();
                 this.currentView = GameView.City;
