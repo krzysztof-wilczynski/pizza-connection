@@ -31,6 +31,21 @@ export class InteriorView {
         this.ctx = ctx;
         this.activeBuilding = activeBuilding;
         this.pizzaCreator = pizzaCreator;
+        this.showUI();
+    }
+
+    public showUI(): void {
+        const interiorUI = document.getElementById('interior-ui');
+        if (interiorUI) {
+            interiorUI.style.display = 'block';
+        }
+    }
+
+    public hideUI(): void {
+        const interiorUI = document.getElementById('interior-ui');
+        if (interiorUI) {
+            interiorUI.style.display = 'none';
+        }
     }
 
     public update(deltaTime: number): void {

@@ -1,0 +1,15 @@
+{
+  "reporter": ["lcov", "text"],
+  "report-dir": "coverage/combined",
+  "temp-directory": "coverage",
+  "all": true,
+  "src": ["src"],
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "node_modules",
+    "tests",
+    ".c8rc.json"
+  ]
+}
