@@ -1,5 +1,5 @@
 import { gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './Isometric';
-import { Furniture } from './model/Furniture';
+import {Furniture, PlacedFurniture} from './model/Furniture';
 import { FURNITURE_CATALOG } from './model/FurnitureCatalog';
 import { PizzaCreator } from './PizzaCreator';
 import { Restaurant } from './model/Restaurant';
@@ -113,7 +113,7 @@ export class InteriorView {
         // Draw sorted
         renderList.forEach(item => {
             if (item.type === 'furniture') {
-                const f = item.obj as Furniture;
+                const f = item.obj as PlacedFurniture;
                 this.drawFurniture(f.gridX, f.gridY, f);
             } else if (item.type === 'employee') {
                 const e = item.obj as Employee;
@@ -475,9 +475,7 @@ export class InteriorView {
         }
 
         // Waiter: Walking with food -> Pizza Icon
-        if (employee.role === EmployeeRole.Waiter && employee.currentOrder && employee.state === EmployeeState.Walking) {
-            this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / employee.currentOrder.maxProgress), barHeight);
-        }
+        // Removed erroneous progress bar drawing using undefined barX/barY variables
 
         // Waiter: Walking with food -> Pizza Icon
         // Check if waiter has an order that is ready or served (meaning they are carrying it)

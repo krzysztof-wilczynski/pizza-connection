@@ -1,9 +1,18 @@
+import { Pizza } from './model/Pizza';
+import { Ingredient as ModelIngredient } from './model/Ingredient';
+import { IngredientType } from './model/enums';
+import { v4 as uuidv4 } from 'uuid';
+
 // --- Interfaces ---
-export interface Ingredient {
+// Rename local interface to avoid collision with ModelIngredient
+export interface UIIngredient {
   name: string;
   cost: number;
   priceModifier: number;
   color: string;
+  // We add this to help mapping, though strictly speaking the UIIngredient data
+  // in availableIngredients doesn't have it yet. We'll handle it in the map logic.
+  type?: IngredientType;
 }
 
 export interface PizzaRecipe {
@@ -14,7 +23,7 @@ export interface PizzaRecipe {
 }
 
 export interface PlacedIngredient {
-  ingredient: Ingredient;
+  ingredient: UIIngredient;
   x: number;
   y: number;
   radius: number;
@@ -66,6 +75,9 @@ const UIConstants = {
 export class PizzaCreator {
   public active: boolean = false;
 
+  // Callback for saving the pizza
+  public onSave: ((pizza: Pizza) => void) | null = null;
+
   // --- UI Layout ---
   private modalRect = { x: 0, y: 0, width: 0, height: 0 };
   private pizzaArea = { x: 0, y: 0, radius: 0 };
@@ -77,7 +89,7 @@ export class PizzaCreator {
 
   // --- State ---
   private isDragging: boolean = false;
-  private draggedIngredient: Ingredient | null = null;
+  private draggedIngredient: UIIngredient | null = null;
   private draggedPlacedIngredient: PlacedIngredient | null = null;
   private dragOffset = { x: 0, y: 0 };
   private mousePos = { x: 0, y: 0 };
@@ -85,12 +97,12 @@ export class PizzaCreator {
   private cursorBlink: number = 0;
 
 
-  public availableIngredients: Ingredient[] = [
-    { name: 'Ser', cost: 2, priceModifier: 1.2, color: '#FFD700' },
-    { name: 'Sos', cost: 1, priceModifier: 1.1, color: '#FF4500' },
-    { name: 'Salami', cost: 3, priceModifier: 1.5, color: '#DC143C' },
-    { name: 'Pieczarki', cost: 2, priceModifier: 1.3, color: '#A0522D' },
-    { name: 'Papryka', cost: 2, priceModifier: 1.2, color: '#228B22' },
+  public availableIngredients: UIIngredient[] = [
+    { name: 'Ser', cost: 2, priceModifier: 1.2, color: '#FFD700', type: IngredientType.Cheese },
+    { name: 'Sos', cost: 1, priceModifier: 1.1, color: '#FF4500', type: IngredientType.Sauce },
+    { name: 'Salami', cost: 3, priceModifier: 1.5, color: '#DC143C', type: IngredientType.Topping },
+    { name: 'Pieczarki', cost: 2, priceModifier: 1.3, color: '#A0522D', type: IngredientType.Topping },
+    { name: 'Papryka', cost: 2, priceModifier: 1.2, color: '#228B22', type: IngredientType.Topping },
   ];
 
   private selectedIngredients: PlacedIngredient[] = [];
@@ -119,14 +131,22 @@ export class PizzaCreator {
     return { baseCost, sellPrice };
   }
 
-  public saveToMenu(): PizzaRecipe {
+  public saveToMenu(): Pizza {
     const { baseCost, sellPrice } = this.calculatePrice();
-    return {
-      name: this.pizzaName,
-      ingredients: this.selectedIngredients.map(item => item.ingredient.name),
-      baseCost: baseCost,
-      sellPrice: parseFloat(sellPrice.toFixed(2)),
-    };
+
+    const ingredientsList = this.selectedIngredients.map(item => {
+        // Create a new ModelIngredient instance for each placed ingredient.
+        // We use uuid for unique ID.
+        // We default to Topping if type is missing, but availableIngredients has types now.
+        return new ModelIngredient(
+            uuidv4(),
+            item.ingredient.name,
+            item.ingredient.cost,
+            item.ingredient.type ?? IngredientType.Topping
+        );
+    });
+
+    return new Pizza(this.pizzaName, ingredientsList, parseFloat(sellPrice.toFixed(2)));
   }
 
   private updateLayout(canvasWidth: number, canvasHeight: number): void {
@@ -265,8 +285,10 @@ export class PizzaCreator {
         return;
     }
     if (isInside(this.mousePos, this.saveButtonRect)) {
-        const recipe = this.saveToMenu();
-        console.log("Pizza Recipe Saved:", recipe);
+        const newPizza = this.saveToMenu();
+        if (this.onSave) {
+            this.onSave(newPizza);
+        }
         this.close();
         return;
     }

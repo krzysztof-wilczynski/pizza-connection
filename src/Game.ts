@@ -1,4 +1,5 @@
 import { AssetManager } from './AssetManager';
+import { ASSET_MANIFEST } from './AssetsManifest';
 import { GameMap } from './Map';
 import { PizzaCreator } from './PizzaCreator';
 import { UIManager } from './UIManager';
@@ -56,29 +57,12 @@ export class Game {
     }
 
     public async preloadAssets(): Promise<void> {
-        const assetsToLoad = [
-            { key: 'floor', path: '/assets/restaurant/floor.svg' },
-            { key: 'wall_left', path: '/assets/restaurant/walls/left_wall.svg' },
-            { key: 'wall_right', path: '/assets/restaurant/walls/right_wall.svg' },
-            { key: 'wall_back', path: '/assets/restaurant/walls/back_wall.svg' },
-            { key: 'oven', path: '/assets/restaurant/kitchen/oven.svg' },
-            { key: 'table', path: '/assets/restaurant/interior/table.svg' },
-            { key: 'chair', path: '/assets/restaurant/interior/chair.svg' },
-            { key: 'plant', path: '/assets/restaurant/interior/plant.svg' },
-            { key: 'pizza_base', path: '/assets/pizza/ciasto.svg' },
-            { key: 'ciasto', path: '/assets/pizza/ciasto.svg' },
-            { key: 'mozzarella', path: '/assets/pizza/mozzarella.svg' },
-            { key: 'sos', path: '/assets/pizza/sos.svg' },
-            { key: 'salami', path: '/assets/pizza/salami.svg' },
-            { key: 'shrooms', path: '/assets/pizza/shrooms.svg' },
-            { key: 'pepper', path: '/assets/pizza/pepper.svg' },
-            { key: 'building_sale', path: '/assets/city/residential/house.svg' },
-            { key: 'building_owned', path: '/assets/city/commercial/restaurant.svg' },
-            { key: 'chef', path: '/assets/people/chef.svg' },
-            { key: 'waiter', path: '/assets/people/waiter.svg' },
-        ];
+const loadPromises = Object.entries(ASSET_MANIFEST).map(([key, path]) => {
+      return this.assetManager.loadAsset(key, path);
+    });
 
-        await Promise.all(assetsToLoad.map(asset => this.assetManager.loadAsset(asset.key, asset.path)));
+    await Promise.all(loadPromises);
+    console.log('All assets loaded from manifest.');
     }
 
     private resizeCanvas(): void {

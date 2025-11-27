@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PizzaCreator } from './PizzaCreator';
+import { Ingredient } from './model/Ingredient';
 
 describe('PizzaCreator', () => {
   it('should calculate the price of a pizza correctly', () => {
@@ -15,8 +16,7 @@ describe('PizzaCreator', () => {
 
     // then
     expect(baseCost).toBe(5);
-    expect(sellPrice).toBe(6.75); // (2 * 1.2 + 3 * 1.5) / 2 * 5 = (2.4 + 4.5) / 2 * 5 = 3.45 * 5 = 17.25 - WRONG
-                               // ( (1.2 + 1.5) / 2 ) * 5 = 1.35 * 5 = 6.75 - CORRECT
+    expect(sellPrice).toBe(6.75);
   });
 
   it('should save a pizza recipe correctly', () => {
@@ -28,12 +28,19 @@ describe('PizzaCreator', () => {
     ];
 
     // when
-    const recipe = pizzaCreator.saveToMenu();
+    const pizza = pizzaCreator.saveToMenu(); // Returns Pizza object now
 
     // then
-    expect(recipe.name).toBe('Test Pizza');
-    expect(recipe.ingredients).toEqual(['Ser']);
-    expect(recipe.baseCost).toBe(2);
-    expect(recipe.sellPrice).toBe(2.4);
+    expect(pizza.name).toBe('Test Pizza');
+    // Verify ingredients are Ingredient objects
+    expect(pizza.ingredients).toHaveLength(1);
+    expect(pizza.ingredients[0]).toBeInstanceOf(Ingredient);
+    expect(pizza.ingredients[0].name).toBe('Ser');
+    expect(pizza.ingredients[0].baseCost).toBe(2);
+
+    // Check calculated price on the Pizza object
+    // Pizza uses getCost() which sums baseCosts.
+    // It also has public salePrice property.
+    expect(pizza.salePrice).toBe(2.4);
   });
 });
