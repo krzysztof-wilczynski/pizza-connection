@@ -1,5 +1,5 @@
 import { AssetManager } from './AssetManager';
-import { ASSET_MANIFEST } from './AssetsManifest';
+import { ASSETS_MANIFEST } from './AssetsManifest';
 import { GameMap } from './Map';
 import { PizzaCreator } from './PizzaCreator';
 import { UIManager } from './UIManager';
@@ -38,7 +38,7 @@ export class Game {
         this.assetManager = new AssetManager();
         loadInitialData(this.gameState, this.map);
         this.uiManager = new UIManager();
-        this.pizzaCreator = new PizzaCreator();
+        this.pizzaCreator = new PizzaCreator(this.assetManager);
 
         this.cityView = new CityView(this.ctx, this.map, this.gameState, this.cameraOffset, this.uiManager, this.pizzaCreator, this.assetManager);
 
@@ -57,12 +57,12 @@ export class Game {
     }
 
     public async preloadAssets(): Promise<void> {
-const loadPromises = Object.entries(ASSET_MANIFEST).map(([key, path]) => {
-      return this.assetManager.loadAsset(key, path);
-    });
+        const loadPromises = Object.entries(ASSETS_MANIFEST).map(([key, path]) => {
+            return this.assetManager.loadAsset(key, path);
+        });
 
-    await Promise.all(loadPromises);
-    console.log('All assets loaded from manifest.');
+        await Promise.all(loadPromises);
+        console.log('All assets loaded from manifest.');
     }
 
     private resizeCanvas(): void {
