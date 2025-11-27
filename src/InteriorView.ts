@@ -47,6 +47,12 @@ export class InteriorView {
         this.activeRestaurant = activeRestaurant;
         this.pizzaCreator = pizzaCreator;
         this.assetManager = assetManager;
+
+        // Set callback for when a pizza is created
+        this.pizzaCreator.onSave = (pizza) => {
+            this.activeRestaurant.menu.push(pizza);
+            console.log(`Dodano pizzę ${pizza.name} do menu!`);
+        };
     }
 
     public update(deltaTime: number): void {

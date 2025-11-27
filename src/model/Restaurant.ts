@@ -51,17 +51,17 @@ export class Restaurant {
   
   public hasIngredientsFor(pizza: Pizza): boolean {
     // Zakładamy uproszczenie: 1 sztuka każdego składnika na pizzę
-    for (const ingredient of pizza.ingredients) {
-        const currentAmount = this.inventory.get(ingredient.id) || 0;
+    for (const ingredientId of pizza.ingredients) {
+        const currentAmount = this.inventory.get(ingredientId) || 0;
         if (currentAmount < 1) return false;
     }
     return true;
   }
 
   public consumeIngredientsFor(pizza: Pizza): void {
-    for (const ingredient of pizza.ingredients) {
-        const currentAmount = this.inventory.get(ingredient.id) || 0;
-        this.inventory.set(ingredient.id, Math.max(0, currentAmount - 1));
+    for (const ingredientId of pizza.ingredients) {
+        const currentAmount = this.inventory.get(ingredientId) || 0;
+        this.inventory.set(ingredientId, Math.max(0, currentAmount - 1));
     }
   }
 
@@ -141,7 +141,7 @@ export class Restaurant {
       customer.eatingTimer -= dt;
       if (customer.eatingTimer <= 0) {
         if (customer.order) {
-            GameState.getInstance().player.addMoney(customer.order.salePrice); // Use salePrice not price
+            GameState.getInstance().player.addMoney(customer.order.price);
         }
         customer.state = CustomerState.Leaving;
         customer.targetFurnitureId = null; 
