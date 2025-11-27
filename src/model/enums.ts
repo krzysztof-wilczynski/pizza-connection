@@ -16,6 +16,21 @@ export enum EmployeeState {
   Working,
 }
 
+export enum CustomerState {
+  Arriving,
+  Seated,
+  WaitingForFood,
+  Eating,
+  Leaving
+}
+
+export enum OrderState {
+  Pending,
+  Cooking,
+  Ready,
+  Served
+}
+
 export enum TileType {
   Empty,
   BuildingForSale,

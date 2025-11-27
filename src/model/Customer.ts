@@ -1,12 +1,5 @@
-
 import { Pizza } from './Pizza';
-
-export enum CustomerState {
-  Arriving,
-  Seated,
-  Eating,
-  Leaving
-}
+import { CustomerState } from './enums';
 
 export class Customer {
   id: string;
