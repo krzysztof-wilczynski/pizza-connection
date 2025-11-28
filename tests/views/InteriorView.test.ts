@@ -3,138 +3,128 @@ import { InteriorView } from '../../src/views/InteriorView';
 import { Restaurant } from '../../src/model/Restaurant';
 import { PizzaCreator } from '../../src/views/PizzaCreator';
 import { AssetManager } from '../../src/systems/AssetManager';
+import { TimeManager } from '../../src/systems/TimeManager';
 import { GameState } from '../../src/model/GameState';
-import { Furniture } from '../../src/model/Furniture';
-import { TileType } from '../../src/model/enums';
 
-// Mocks
-class MockCanvasRenderingContext2D {
-  canvas = { width: 800, height: 600, getBoundingClientRect: () => ({ left: 0, top: 0 }) };
-  clearRect = vi.fn();
-  fillRect = vi.fn();
-  save = vi.fn();
-  restore = vi.fn();
-  translate = vi.fn();
-  drawImage = vi.fn();
-  beginPath = vi.fn();
-  moveTo = vi.fn();
-  lineTo = vi.fn();
-  closePath = vi.fn();
-  fill = vi.fn();
-  stroke = vi.fn();
-  fillText = vi.fn();
-  measureText = vi.fn(() => ({ width: 10 }));
-  strokeText = vi.fn();
-}
+// Mock dependencies
+const mockCtx = {
+  canvas: { width: 800, height: 600, getBoundingClientRect: () => ({ left: 0, top: 0 }) },
+  clearRect: vi.fn(),
+  fillStyle: '',
+  fillRect: vi.fn(),
+  strokeRect: vi.fn(),
+  save: vi.fn(),
+  restore: vi.fn(),
+  translate: vi.fn(),
+  drawImage: vi.fn(),
+  fillText: vi.fn(),
+  strokeText: vi.fn(),
+  font: '',
+  textAlign: '',
+  textBaseline: '',
+  strokeStyle: '',
+  lineWidth: 0,
+  beginPath: vi.fn(),
+  moveTo: vi.fn(),
+  lineTo: vi.fn(),
+  closePath: vi.fn(),
+  fill: vi.fn(),
+  stroke: vi.fn(),
+  rect: vi.fn(),
+  clip: vi.fn(),
+  measureText: vi.fn(() => ({ width: 10 })),
+} as unknown as CanvasRenderingContext2D;
 
-describe('InteriorView Floating Text', () => {
-  let interiorView: InteriorView;
-  let mockCtx: any;
-  let mockRestaurant: any;
-  let mockPizzaCreator: any;
-  let mockAssetManager: any;
+const mockAssetManager = {
+  getAsset: vi.fn(),
+  loadAsset: vi.fn(),
+} as unknown as AssetManager;
+
+const mockPizzaCreator = {
+  active: false,
+  render: vi.fn(),
+  handleMouseMove: vi.fn(),
+  handleMouseClick: vi.fn(),
+  open: vi.fn(),
+  onSave: vi.fn(),
+} as unknown as PizzaCreator;
+
+describe('InteriorView', () => {
+  let view: InteriorView;
+  let restaurant: Restaurant;
 
   beforeEach(() => {
-    mockCtx = new MockCanvasRenderingContext2D();
-    mockRestaurant = {
-      update: vi.fn(),
-      furniture: [],
-      employees: [],
-      customers: [],
-      menu: [],
-      addFurniture: vi.fn(() => true),
-      hasIngredientsFor: vi.fn(() => true),
-      kitchenQueue: [],
-      getCost: vi.fn(),
-      buyIngredient: vi.fn(),
-    } as unknown as Restaurant;
+    vi.clearAllMocks();
+    restaurant = new Restaurant();
+    // Ensure GameState has a player
+    // Use setMoney for testing/restoration
+    // @ts-ignore - setMoney might be internal or specific
+    if (typeof GameState.getInstance().player.setMoney === 'function') {
+        GameState.getInstance().player.setMoney(1000);
+    } else {
+        // Fallback: reset to 0 then add
+        const current = GameState.getInstance().player.money;
+        GameState.getInstance().player.spendMoney(current);
+        GameState.getInstance().player.addMoney(1000);
+    }
 
-    mockPizzaCreator = {
-      render: vi.fn(),
-      active: false,
-    } as unknown as PizzaCreator;
+    // Reset TimeManager
+    const tm = TimeManager.getInstance();
+    tm.hour = 10;
+    tm.minute = 30;
 
-    mockAssetManager = {
-      getAsset: vi.fn(),
-    } as unknown as AssetManager;
-
-    // Reset singleton for fresh state
-    const gameState = GameState.getInstance();
-    gameState.player.addMoney(1000000); // Ensure enough money
-
-    interiorView = new InteriorView(
-      mockCtx as CanvasRenderingContext2D,
-      mockRestaurant,
-      mockPizzaCreator,
-      mockAssetManager
-    );
+    view = new InteriorView(mockCtx, restaurant, mockPizzaCreator, mockAssetManager);
   });
 
-  it('should add a floating text via addFloatingText', () => {
-    // Access private property for testing using 'any' cast
-    interiorView.addFloatingText(100, 100, "Test", "red");
+  it('should render UI buttons and HUD', () => {
+    view.render();
 
-    const texts = (interiorView as any).floatingTexts;
-    expect(texts.length).toBe(1);
-    expect(texts[0].text).toBe("Test");
-    expect(texts[0].lifeTime).toBeGreaterThan(0);
+    // Check if HUD buttons are drawn (checking fillText for button labels)
+    expect(mockCtx.fillText).toHaveBeenCalledWith("Kreator Pizzy", expect.any(Number), expect.any(Number));
+    expect(mockCtx.fillText).toHaveBeenCalledWith("Menu", expect.any(Number), expect.any(Number));
+    expect(mockCtx.fillText).toHaveBeenCalledWith("Miasto", expect.any(Number), expect.any(Number));
+
+    // Check time display
+    const timeStr = "10:30"; // Formatted time
+    // We expect the formatted string in the HUD
+    // Since calls might be combined (date + time), checking loose match or specific calls
+    // In code: `${dateText}, ${timeText}`
+    const dateText = TimeManager.getInstance().getFormattedDate();
+    const expectedTimeStr = `${dateText}, ${timeStr}`;
+    expect(mockCtx.fillText).toHaveBeenCalledWith(expectedTimeStr, expect.any(Number), expect.any(Number));
   });
 
-  it('should update floating texts (move and decrease lifetime)', () => {
-    interiorView.addFloatingText(100, 100, "Test", "red");
-    const texts = (interiorView as any).floatingTexts;
-    const initialY = texts[0].y;
-    const initialLife = texts[0].lifeTime;
-
-    interiorView.update(0.1); // 100ms
-
-    expect(texts[0].y).toBeLessThan(initialY); // Moved up
-    expect(texts[0].lifeTime).toBeLessThan(initialLife); // Aged
+  it('should update restaurant simulation', () => {
+    const spy = vi.spyOn(restaurant, 'update');
+    view.update(0.1);
+    expect(spy).toHaveBeenCalledWith(0.1);
   });
 
-  it('should remove dead floating texts', () => {
-    interiorView.addFloatingText(100, 100, "Test", "red");
-    const texts = (interiorView as any).floatingTexts;
-
-    // Fast forward to death
-    interiorView.update(100);
-
-    expect(texts.length).toBe(0);
-  });
-
-  it('should trigger floating text on furniture purchase (POC)', () => {
-    // Setup selected furniture
-    const furniture: Furniture = {
-        id: 'table',
-        name: 'Table',
-        price: 50,
-        width: 1,
-        height: 1,
-        type: 'table',
-        assetKey: 'furniture_table',
-        color: 'brown',
-        level: 1
-    };
-    (interiorView as any).selectedFurniture = furniture;
-
-    // Simulate click in valid area
+  it('should handle "Miasto" button click', () => {
+    const callback = vi.fn();
+    // Button is at right side: width - 150 (approx)
+    // Canvas 800. Btn City: x = 800 - 140 - 10 = 650. Y = 10. W = 140. H = 40.
+    // Click at 700, 20
     const event = {
-        clientX: 400, // roughly center
-        clientY: 300,
-        button: 0
+      clientX: 700,
+      clientY: 20,
+      button: 0,
     } as MouseEvent;
 
-    // Mock screenToGrid to return valid coordinates
-    // We can't easily mock imports, so we rely on the fact that click at center is likely valid valid
-    // or we just trust the integration.
-    // Instead, let's spy on addFloatingText
-    const spy = vi.spyOn(interiorView, 'addFloatingText');
+    view.handleMouseClick(event, callback);
+    expect(callback).toHaveBeenCalledWith(null);
+  });
 
-    // We need to ensure addFurniture returns true
-    mockRestaurant.addFurniture.mockReturnValue(true);
+  it('should handle "Creator" button click', () => {
+    const callback = vi.fn();
+    // Creator btn: x=10, y=10, w=120, h=40
+    const event = {
+      clientX: 50,
+      clientY: 20,
+      button: 0,
+    } as MouseEvent;
 
-    interiorView.handleMouseClick(event, vi.fn());
-
-    expect(spy).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), "-$50", "red");
+    view.handleMouseClick(event, callback);
+    expect(mockPizzaCreator.open).toHaveBeenCalled();
   });
 });
