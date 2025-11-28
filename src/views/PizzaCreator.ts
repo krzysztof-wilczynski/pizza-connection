@@ -3,7 +3,7 @@ import { Ingredient as ModelIngredient } from '../model/Ingredient';
 import { IngredientType } from '../model/enums';
 import { v4 as uuidv4 } from 'uuid';
 import { AssetManager } from '../systems/AssetManager';
-import { AssetKey, ASSETS_MANIFEST } from '../systems/AssetsManifest';
+import { AssetKey } from '../systems/AssetsManifest';
 
 // --- Interfaces ---
 export interface UIIngredient {
