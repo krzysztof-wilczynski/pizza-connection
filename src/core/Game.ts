@@ -9,6 +9,8 @@ import {GameView, TileType} from '../model/enums';
 import {Tile, BuildingOwnedTile} from '../model/Tile';
 import {CityView} from '../views/CityView';
 import {InteriorView} from '../views/InteriorView';
+import {HUD} from '../views/HUD';
+import {TimeManager} from '../systems/TimeManager';
 
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -20,6 +22,8 @@ export class Game {
   private uiManager: UIManager;
   private pizzaCreator: PizzaCreator;
   private assetManager: AssetManager;
+  private hud: HUD;
+  private timeManager: TimeManager;
 
   private currentView: GameView = GameView.City;
   private cityView: CityView;
@@ -36,6 +40,9 @@ export class Game {
     this.map = new GameMap(10, 10);
     this.gameState = GameState.getInstance();
     this.assetManager = new AssetManager();
+    this.timeManager = new TimeManager();
+    this.hud = new HUD(this.gameState, this.timeManager);
+
     loadInitialData(this.gameState, this.map);
     this.uiManager = new UIManager();
     this.pizzaCreator = new PizzaCreator(this.assetManager);
@@ -80,7 +87,8 @@ export class Game {
     const deltaTime = timestamp - this.lastTime;
     this.lastTime = timestamp;
 
-    this.gameState.timeManager.update(deltaTime);
+    this.timeManager.update(deltaTime);
+    this.hud.update(deltaTime);
 
     switch (this.currentView) {
       case GameView.City:
@@ -92,6 +100,9 @@ export class Game {
         this.interiorView?.render();
         break;
     }
+
+    // Always render HUD on top
+    this.hud.render(this.ctx);
 
     requestAnimationFrame(this.gameLoop.bind(this));
   }

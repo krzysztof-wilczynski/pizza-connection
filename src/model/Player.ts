@@ -1,12 +1,18 @@
 export class Player {
   private _money: number;
+  private _reputation: number;
 
   constructor(startingMoney: number) {
     this._money = startingMoney;
+    this._reputation = 1; // Default starting reputation (1 star)
   }
 
   public get money(): number {
     return this._money;
+  }
+
+  public get reputation(): number {
+    return this._reputation;
   }
 
   public addMoney(amount: number): void {
