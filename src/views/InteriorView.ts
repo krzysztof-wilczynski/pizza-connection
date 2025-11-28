@@ -12,6 +12,25 @@ import { FurniturePanel } from './ui/FurniturePanel';
 import { StaffPanel } from './ui/StaffPanel';
 import { InventoryPanel } from './ui/InventoryPanel';
 
+interface FloatingText {
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  lifeTime: number;
+  maxLife: number;
+}
+
+const BACK_BUTTON_WIDTH = 180;
+const BACK_BUTTON_HEIGHT = 50;
+const BACK_BUTTON_MARGIN = 20;
+
+const FURNITURE_PANEL_WIDTH = 250;
+
+const BTN_CREATOR_RECT = {x: 10, y: 10, w: 200, h: 50};
+const BTN_MENU_RECT = {x: 220, y: 10, w: 100, h: 50};
+const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50};
+
 export class InteriorView {
   private ctx: CanvasRenderingContext2D;
   private activeRestaurant: Restaurant;
@@ -22,6 +41,8 @@ export class InteriorView {
   private selectedFurniture: Furniture | null = null;
   private mousePosition = {x: 0, y: 0};
   private activeTab: 'furniture' | 'staff' | 'inventory' = 'furniture';
+
+  private floatingTexts: FloatingText[] = [];
 
   // Sub-panels
   private furniturePanel: FurniturePanel;
@@ -136,12 +157,30 @@ export class InteriorView {
       this.selectedFurniture = null;
   }
 
+  public addFloatingText(x: number, y: number, text: string, color: string): void {
+    this.floatingTexts.push({
+      x,
+      y,
+      text,
+      color,
+      lifeTime: 2.0, // 2 seconds
+      maxLife: 2.0
+    });
+  }
+
   public update(deltaTime: number): void {
     this.activeRestaurant.update(deltaTime);
 
-    // Update Panels if needed (e.g. inventory counts changing)
-    if (this.activeTab === 'staff') this.staffPanel.updateHTML(this.activeRestaurant);
-    if (this.activeTab === 'inventory') this.inventoryPanel.updateHTML(this.activeRestaurant);
+    // Update Floating Texts
+    const speed = 50; // pixels per second
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatingTexts[i];
+      ft.lifeTime -= deltaTime;
+      ft.y -= speed * deltaTime;
+      if (ft.lifeTime <= 0) {
+        this.floatingTexts.splice(i, 1);
+      }
+    }
   }
 
   public render(): void {
@@ -215,6 +254,99 @@ export class InteriorView {
 
     // Canvas UI Overlays that are "part of the scene" (like Creator)
     this.pizzaCreator.render(this.ctx);
+    this.menuManager.render(this.ctx);
+
+    // Draw Floating Texts (Topmost Layer)
+    this.drawFloatingTexts();
+  }
+
+  private drawFloatingTexts(): void {
+    this.ctx.save();
+    this.ctx.font = 'bold 20px Arial';
+    this.ctx.textAlign = 'center';
+
+    this.floatingTexts.forEach(ft => {
+      const alpha = Math.max(0, ft.lifeTime / ft.maxLife);
+      this.ctx.globalAlpha = alpha;
+
+      // Shadow/Outline effect
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
+
+      this.ctx.fillStyle = ft.color;
+      this.ctx.fillText(ft.text, ft.x, ft.y);
+    });
+
+    this.ctx.restore();
+  }
+
+
+  private drawTempUI(): void {
+    // Creator Button
+    this.ctx.fillStyle = '#27ae60';
+    this.ctx.fillRect(BTN_CREATOR_RECT.x, BTN_CREATOR_RECT.y, BTN_CREATOR_RECT.w, BTN_CREATOR_RECT.h);
+    this.ctx.fillStyle = '#ecf0f1';
+    this.ctx.font = '20px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('Otwórz Kreator Pizzy', BTN_CREATOR_RECT.x + BTN_CREATOR_RECT.w/2, 40);
+
+    // Menu Button
+    this.ctx.fillStyle = '#8e44ad';
+    this.ctx.fillRect(BTN_MENU_RECT.x, BTN_MENU_RECT.y, BTN_MENU_RECT.w, BTN_MENU_RECT.h);
+    this.ctx.fillStyle = '#ecf0f1';
+    this.ctx.fillText('Menu', BTN_MENU_RECT.x + BTN_MENU_RECT.w/2, 40);
+
+    this.ctx.textAlign = 'left';
+
+    // Money HUD
+    const money = GameState.getInstance().player.money;
+    this.ctx.fillStyle = '#f1c40f'; // Gold color
+    this.ctx.font = 'bold 24px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(`$${money.toLocaleString()}`, this.ctx.canvas.width / 2, 35);
+    this.ctx.textAlign = 'left';
+
+    this.drawBackButton();
+    this.drawTabButtons();
+
+    if (this.activeTab === 'furniture') {
+      this.furniturePanel.render(this.ctx);
+    } else if (this.activeTab === 'staff') {
+      this.staffPanel.render(this.ctx);
+    } else if (this.activeTab === 'inventory') {
+      this.inventoryPanel.render(this.ctx, this.activeRestaurant);
+    }
+  }
+
+  private drawTabButtons(): void {
+    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
+
+    // Background for tabs
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    this.ctx.fillRect(panelX, 0, FURNITURE_PANEL_WIDTH, 40);
+
+    const tabWidth = FURNITURE_PANEL_WIDTH / 3;
+
+    // Furniture Tab
+    this.ctx.fillStyle = this.activeTab === 'furniture' ? '#666' : '#444';
+    this.ctx.fillRect(panelX, 0, tabWidth, 40);
+    this.ctx.fillStyle = '#fff';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.font = '12px Arial';
+    this.ctx.fillText('Meble', panelX + tabWidth / 2, 20);
+
+    // Staff Tab
+    this.ctx.fillStyle = this.activeTab === 'staff' ? '#666' : '#444';
+    this.ctx.fillRect(panelX + tabWidth, 0, tabWidth, 40);
+    this.ctx.fillStyle = '#fff';
+    this.ctx.fillText('Ludzie', panelX + tabWidth * 1.5, 20);
+
+    // Inventory Tab
+    this.ctx.fillStyle = this.activeTab === 'inventory' ? '#666' : '#444';
+    this.ctx.fillRect(panelX + tabWidth * 2, 0, tabWidth, 40);
+    this.ctx.fillStyle = '#fff';
+    this.ctx.fillText('Spiżarnia', panelX + tabWidth * 2.5, 20);
   }
 
   private drawFurnitureGhost(interiorOffsetX: number, interiorOffsetY: number): void {
@@ -454,6 +586,7 @@ export class InteriorView {
         if (success) {
           player.spendMoney(this.selectedFurniture.price);
           console.log("Cha-ching!");
+          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${this.selectedFurniture.price}`, "red");
           this.selectedFurniture = null;
         }
       } else {
