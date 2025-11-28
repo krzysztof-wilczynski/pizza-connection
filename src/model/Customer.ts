@@ -3,6 +3,7 @@ import { Pizza } from './Pizza';
 import { GameState } from './GameState';
 import { TimeManager } from '../systems/TimeManager';
 import { Restaurant } from './Restaurant';
+import { NotificationManager } from '../systems/NotificationManager';
 
 export class Customer {
   id: string;
@@ -13,6 +14,11 @@ export class Customer {
   order: Pizza | null;
   eatingTimer: number;
   assetKey: string;
+
+  // Visual Bubble State
+  public bubbleText: string | null = null;
+  public bubbleTimer: number = 0;
+  public bubbleColor: string = '#FFF';
 
   // Review System Tracking
   private arrivalTime: number = 0; // Game time in minutes
@@ -43,20 +49,19 @@ export class Customer {
 
       let rating = 3;
       let comments: string[] = [];
+      let shortReaction = ""; // For bubble
 
       if (!success) {
           rating = 1;
           comments.push("Wyszedłem głodny!");
+          shortReaction = "Wyszedłem głodny!";
       } else {
           // Success case
           rating = 4; // Base positive
           comments.push("Dobra pizza.");
+          shortReaction = "Dobra pizza.";
 
           // Wait time check
-          // Note: Realistically we should track time between Seated and Eating.
-          // For now, let's look at total time spent vs expected.
-          // Or we assume 'waitingForFoodTime' was set when order was placed.
-
           if (this.waitingForFoodTime > 0) {
              const waitEnd = leaveTime;
              const waitDuration = waitEnd - this.waitingForFoodTime;
@@ -64,9 +69,11 @@ export class Customer {
              if (waitDuration > 30) {
                  rating -= 1;
                  comments.push("Czekałem wieki!");
+                 shortReaction = "Za długo...";
              } else {
                  rating += 1;
                  comments.push("Szybka obsługa.");
+                 shortReaction = "Szybko!";
              }
           }
 
@@ -76,9 +83,11 @@ export class Customer {
               if (valueRatio < 1.0) {
                   rating += 1;
                   comments.push("Świetna cena!");
+                  shortReaction = "Tanio!";
               } else if (valueRatio > 2.0) {
                   rating -= 1;
                   comments.push("Drogo.");
+                  shortReaction = "Drożyzna!";
               }
           }
 
@@ -86,17 +95,32 @@ export class Customer {
           if (restaurant.appeal > 10) {
               rating += 1;
               comments.push("Ładne wnętrze.");
+              // Don't necessarily override shortReaction here unless it's the main point
           }
       }
 
       // Clamp rating
       rating = Math.max(1, Math.min(5, rating));
 
+      const fullComment = comments.join(" ");
+
+      // 1. System Notification
+      NotificationManager.getInstance().log(
+          `Nowa opinia: ${rating}/5 - "${fullComment}"`,
+          rating >= 3 ? 'success' : 'error'
+      );
+
+      // 2. Add to Reputation System
       restaurant.reputationSystem.addReview({
           rating: rating,
-          comment: comments.join(" "),
+          comment: fullComment,
           timestamp: tm.getTimeString()
       });
+
+      // 3. Trigger Visual Bubble
+      this.bubbleText = shortReaction;
+      this.bubbleTimer = 3.0; // 3 seconds
+      this.bubbleColor = rating >= 3 ? '#2ecc71' : '#e74c3c';
   }
 
   public startWaitingForFood(): void {

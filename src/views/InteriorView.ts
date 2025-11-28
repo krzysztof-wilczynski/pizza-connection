@@ -510,6 +510,48 @@ export class InteriorView {
       this.ctx.lineTo(screenPos.x + 4, drawY - 15);
       this.ctx.stroke();
     }
+
+    // --- Bubble Rendering ---
+    if (customer.bubbleText) {
+      const bubbleW = 100;
+      const bubbleH = 30;
+      const bubbleX = screenPos.x - bubbleW / 2;
+      const bubbleY = drawY - 45; // Above head
+
+      this.ctx.save();
+
+      // Bubble Body
+      this.ctx.fillStyle = 'white';
+      this.ctx.strokeStyle = customer.bubbleColor;
+      this.ctx.lineWidth = 2;
+
+      this.ctx.beginPath();
+      // Check if roundRect exists (it's new in Canvas API)
+      if (this.ctx.roundRect) {
+         this.ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 5);
+      } else {
+         this.ctx.rect(bubbleX, bubbleY, bubbleW, bubbleH);
+      }
+      this.ctx.fill();
+      this.ctx.stroke();
+
+      // Tail
+      this.ctx.beginPath();
+      this.ctx.moveTo(screenPos.x, bubbleY + bubbleH);
+      this.ctx.lineTo(screenPos.x - 5, bubbleY + bubbleH + 5);
+      this.ctx.lineTo(screenPos.x + 5, bubbleY + bubbleH);
+      this.ctx.fill(); // Fill tail specifically to hide outline overlap if needed, but fill is white anyway
+      this.ctx.stroke();
+
+      // Text
+      this.ctx.fillStyle = customer.bubbleColor;
+      this.ctx.font = 'bold 12px Arial';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(customer.bubbleText, screenPos.x, bubbleY + bubbleH / 2);
+
+      this.ctx.restore();
+    }
   }
 
   private drawFurniture(x: number, y: number, furniture: Furniture, isValid: boolean = true): void {

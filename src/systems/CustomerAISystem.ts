@@ -10,6 +10,22 @@ export class CustomerAISystem {
   private static readonly SPEED = 0.003;
 
   public static update(customer: Customer, dt: number, restaurant: Restaurant, removeList: string[]): void {
+    // Update bubble timer
+    if (customer.bubbleTimer > 0) {
+      customer.bubbleTimer -= dt / 1000; // dt is usually in ms? No, check caller.
+      // Game usually uses dt in ms from requestAnimationFrame?
+      // InteriorView.update passes deltaTime.
+      // Let's verify standard unit. If dt is ~16 (ms), then dividing by 1000 is correct for seconds.
+      // If dt is ~0.016 (seconds), then no division.
+      // Looking at moveTowards: SPEED = 0.003.
+      // If dt=16, move = 0.003 * 16 = 0.048 tiles/frame. 60 frames = 2.8 tiles. Reasonable.
+      // So dt is likely milliseconds.
+      // Bubble lifetime is 3.0 (seconds).
+      if (customer.bubbleTimer <= 0) {
+        customer.bubbleText = null;
+      }
+    }
+
     if (customer.state === CustomerState.Arriving) {
       CustomerAISystem.handleArriving(customer, dt, restaurant);
     } else if (customer.state === CustomerState.Seated) {
