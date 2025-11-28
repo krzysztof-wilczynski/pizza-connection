@@ -118,7 +118,11 @@ export class Game {
   }
 
   private handleMouseDown(event: MouseEvent): void {
-    if (this.pizzaCreator.active) this.pizzaCreator.handleMouseDown(event);
+    if (this.pizzaCreator.active) {
+      this.pizzaCreator.handleMouseDown(event);
+    } else if (this.currentView === GameView.Interior) {
+      this.interiorView?.handleMouseDown(event);
+    }
   }
 
   private handleMouseMove(event: MouseEvent): void {

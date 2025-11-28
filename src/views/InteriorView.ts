@@ -187,10 +187,15 @@ export class InteriorView {
 
     // Add Furniture
     this.activeRestaurant.furniture.forEach(f => {
+      let depth = f.gridX + f.gridY;
+      // HACK: Carpets (ID 402) always on bottom
+      if (f.id === 402) {
+        depth -= 0.5;
+      }
       renderList.push({
         type: 'furniture',
         obj: f,
-        sortDepth: f.gridX + f.gridY // Simple isometric depth
+        sortDepth: depth // Simple isometric depth
       });
     });
 
@@ -643,7 +648,26 @@ export class InteriorView {
       return; // Consumed by UI
     }
 
-    // World Interaction (Placing Furniture)
+  }
+
+  public handleMouseDown(event: MouseEvent): void {
+    if (this.pizzaCreator.active) return;
+
+    // Check if UI blocked it (e.g., clicked on panel)
+    const width = this.ctx.canvas.width;
+    const height = this.ctx.canvas.height;
+
+    // Simple UI bounds check (Top Bar & Side Panel) to prevent world interaction through UI
+    // Note: detailed button handling is in 'click', but we must block 'mousedown' world logic
+    const panelX = width - SIDE_PANEL_WIDTH;
+    const clickX = event.clientX - this.ctx.canvas.getBoundingClientRect().left;
+    const clickY = event.clientY - this.ctx.canvas.getBoundingClientRect().top;
+
+    const isOverUI = (clickY < TOP_BAR_HEIGHT) || (clickX >= panelX && clickY >= TOP_BAR_HEIGHT);
+
+    if (isOverUI) return;
+
+    // World Interaction (Placing/Rotating Furniture)
     if (this.selectedFurniture) {
       if (event.button === 2) { // Right click (Rotate)
         // Swap dimensions
@@ -652,25 +676,28 @@ export class InteriorView {
         this.selectedFurniture.height = temp;
         return;
       }
-      const interiorOffsetX = this.ctx.canvas.width / 2;
-      const interiorOffsetY = this.ctx.canvas.height / 4;
-      const screenX = this.mousePosition.x - interiorOffsetX;
-      const screenY = this.mousePosition.y - interiorOffsetY;
-      const gridPos = screenToGrid(screenX, screenY);
-      const gridX = Math.floor(gridPos.x);
-      const gridY = Math.floor(gridPos.y);
 
-      const player = GameState.getInstance().player;
-      if (player.money >= this.selectedFurniture.price) {
-        const success = this.activeRestaurant.addFurniture(this.selectedFurniture, gridX, gridY);
-        if (success) {
-          player.spendMoney(this.selectedFurniture.price);
-          console.log("Cha-ching!");
-          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${this.selectedFurniture.price}`, "red");
-          this.selectedFurniture = null;
+      if (event.button === 0) { // Left click (Place)
+        const interiorOffsetX = this.ctx.canvas.width / 2;
+        const interiorOffsetY = this.ctx.canvas.height / 4;
+        const screenX = this.mousePosition.x - interiorOffsetX;
+        const screenY = this.mousePosition.y - interiorOffsetY;
+        const gridPos = screenToGrid(screenX, screenY);
+        const gridX = Math.floor(gridPos.x);
+        const gridY = Math.floor(gridPos.y);
+
+        const player = GameState.getInstance().player;
+        if (player.money >= this.selectedFurniture.price) {
+          const success = this.activeRestaurant.addFurniture(this.selectedFurniture, gridX, gridY);
+          if (success) {
+            player.spendMoney(this.selectedFurniture.price);
+            console.log("Cha-ching!");
+            this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${this.selectedFurniture.price}`, "red");
+            this.selectedFurniture = null;
+          }
+        } else {
+          console.log("Not enough money");
         }
-      } else {
-        console.log("Not enough money");
       }
     }
   }
