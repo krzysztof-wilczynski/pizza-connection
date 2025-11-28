@@ -11,6 +11,7 @@ import {CustomerState, EmployeeRole, EmployeeState, OrderState} from '../model/e
 import {FurniturePanel} from './ui/FurniturePanel';
 import {StaffPanel} from './ui/StaffPanel';
 import {InventoryPanel} from './ui/InventoryPanel';
+import { TimeManager } from '../systems/TimeManager';
 
 interface FloatingText {
   x: number;
@@ -21,15 +22,17 @@ interface FloatingText {
   maxLife: number;
 }
 
-const BACK_BUTTON_WIDTH = 180;
-const BACK_BUTTON_HEIGHT = 50;
-const BACK_BUTTON_MARGIN = 20;
+// --- UI CONSTANTS (Single Source of Truth) ---
+const BTN_HEIGHT = 40;
+const BTN_CREATOR = { x: 10, y: 10, w: 120, h: BTN_HEIGHT };
+const BTN_MENU = { x: 140, y: 10, w: 100, h: BTN_HEIGHT };
+
+// Dynamic buttons (City/Back) rely on canvas width, handled in methods
+const BTN_CITY_WIDTH = 140;
+const BTN_CITY_MARGIN_RIGHT = 10;
+const BTN_CITY_Y = 10;
 
 const FURNITURE_PANEL_WIDTH = 250;
-
-const BTN_CREATOR_RECT = {x: 10, y: 10, w: 200, h: 50};
-const BTN_MENU_RECT = {x: 220, y: 10, w: 100, h: 50};
-const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50};
 
 export class InteriorView {
   private ctx: CanvasRenderingContext2D;
@@ -37,10 +40,12 @@ export class InteriorView {
   private pizzaCreator: PizzaCreator;
   private menuManager: MenuManager;
   private assetManager: AssetManager;
+  private timeManager: TimeManager;
 
   private selectedFurniture: Furniture | null = null;
   private mousePosition = {x: 0, y: 0};
   private activeTab: 'furniture' | 'staff' | 'inventory' = 'furniture';
+  private hoveredButton: 'creator' | 'menu' | 'city' | null = null;
 
   private floatingTexts: FloatingText[] = [];
 
@@ -77,6 +82,7 @@ export class InteriorView {
     this.pizzaCreator = pizzaCreator;
     this.assetManager = assetManager;
     this.menuManager = new MenuManager(this.activeRestaurant);
+    this.timeManager = TimeManager.getInstance();
 
     // Initialize Panels
     this.furniturePanel = new FurniturePanel(assetManager, (furniture) => {
@@ -170,6 +176,7 @@ export class InteriorView {
   }
 
   public update(deltaTime: number): void {
+    // Ensure simulation runs
     this.activeRestaurant.update(deltaTime);
 
     // Update Floating Texts
@@ -195,6 +202,20 @@ export class InteriorView {
     this.ctx.save();
     this.ctx.translate(interiorOffsetX, interiorOffsetY);
 
+    this.renderWorld();
+
+    // Sort and Render Entities
+    this.renderEntities();
+
+    this.drawFurnitureGhost(interiorOffsetX, interiorOffsetY);
+
+    this.ctx.restore();
+
+    // 2. Render UI Overlays
+    this.renderUI();
+  }
+
+  private renderWorld(): void {
     // Draw Walls (Background)
     const wallCorner = this.assetManager.getAsset('interior_wall_corner');
     const wallLeft = this.assetManager.getAsset('interior_wall_left');
@@ -241,72 +262,125 @@ export class InteriorView {
       }
     }
 
-    // Combined Rendering with Z-Sorting
+  }
+
+  private renderEntities(): void {
     const renderList: { type: 'furniture' | 'employee' | 'customer', obj: any, sortDepth: number }[] = [];
 
-    // Add Furniture
     this.activeRestaurant.furniture.forEach(f => {
-      renderList.push({
-        type: 'furniture',
-        obj: f,
-        sortDepth: f.gridX + f.gridY // Simple isometric depth
-      });
+      renderList.push({ type: 'furniture', obj: f, sortDepth: f.gridX + f.gridY });
     });
-
-    // Add Employees
     this.activeRestaurant.employees.forEach(e => {
-      renderList.push({
-        type: 'employee',
-        obj: e,
-        sortDepth: e.gridX + e.gridY
-      });
+      renderList.push({ type: 'employee', obj: e, sortDepth: e.gridX + e.gridY });
     });
-
-    // Add Customers
     this.activeRestaurant.customers.forEach(c => {
-      renderList.push({
-        type: 'customer',
-        obj: c,
-        sortDepth: c.gridX + c.gridY
-      });
+      renderList.push({ type: 'customer', obj: c, sortDepth: c.gridX + c.gridY });
     });
 
-    // Sort by depth
     renderList.sort((a, b) => a.sortDepth - b.sortDepth);
 
-    // Draw sorted
     renderList.forEach(item => {
-      if (item.type === 'furniture') {
-        const f = item.obj as PlacedFurniture;
-        this.drawFurniture(f.gridX, f.gridY, f);
-      } else if (item.type === 'employee') {
-        const e = item.obj as Employee;
-        this.drawEmployee(e);
-      } else if (item.type === 'customer') {
-        const c = item.obj as Customer;
-        this.drawCustomer(c);
-      }
+      if (item.type === 'furniture') this.drawFurniture(item.obj.gridX, item.obj.gridY, item.obj);
+      else if (item.type === 'employee') this.drawEmployee(item.obj);
+      else if (item.type === 'customer') this.drawCustomer(item.obj);
     });
+  }
 
-    this.drawFurnitureGhost(interiorOffsetX, interiorOffsetY);
+  private getCityBtnRect() {
+    return {
+      x: this.ctx.canvas.width - BTN_CITY_WIDTH - BTN_CITY_MARGIN_RIGHT,
+      y: BTN_CITY_Y,
+      w: BTN_CITY_WIDTH,
+      h: BTN_HEIGHT
+    };
+  }
 
-    this.ctx.restore();
-
-    // Canvas UI Overlays that are "part of the scene" (like Creator)
+  private renderUI(): void {
+    // --- Canvas UI Panels ---
     this.pizzaCreator.render(this.ctx);
     this.menuManager.render(this.ctx);
 
-    // Render Furniture Panel if active
     if (this.activeTab === 'furniture') {
-        // Render on the right side
         const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-        const panelY = 0; // Full height
-        const panelHeight = this.ctx.canvas.height;
-        this.furniturePanel.render(this.ctx, panelX, panelY, FURNITURE_PANEL_WIDTH, panelHeight);
+        this.furniturePanel.render(this.ctx, panelX, 0, FURNITURE_PANEL_WIDTH, this.ctx.canvas.height);
     }
 
-    // Draw Floating Texts (Topmost Layer)
+    // --- HUD Buttons ---
+    this.drawButton(BTN_CREATOR, "Kreator Pizzy", this.hoveredButton === 'creator');
+    this.drawButton(BTN_MENU, "Menu", this.hoveredButton === 'menu');
+    this.drawButton(this.getCityBtnRect(), "Miasto", this.hoveredButton === 'city');
+
+    // --- HUD Information (Time & Money) ---
+    this.ctx.save();
+
+    // Money
+    this.ctx.font = 'bold 24px Arial';
+    this.ctx.textAlign = 'right';
+    this.ctx.fillStyle = '#FFD700';
+    this.ctx.strokeStyle = 'black';
+    this.ctx.lineWidth = 4;
+
+    const moneyText = `$${GameState.getInstance().player.money}`;
+    const moneyX = this.ctx.canvas.width - 20;
+    const moneyY = 90;
+
+    this.ctx.strokeText(moneyText, moneyX, moneyY);
+    this.ctx.fillText(moneyText, moneyX, moneyY);
+
+    // Time (Clock)
+    const timeText = this.timeManager.getFormattedTime();
+    const dateText = this.timeManager.getFormattedDate();
+
+    this.ctx.fillStyle = 'white';
+    this.ctx.strokeText(`${dateText}, ${timeText}`, moneyX, moneyY + 30);
+    this.ctx.fillText(`${dateText}, ${timeText}`, moneyX, moneyY + 30);
+
+    // Reputation (Stars)
+    const stars = Math.round(this.activeRestaurant.reputationSystem.averageRating);
+    const starStr = "★".repeat(stars) + "☆".repeat(5 - stars);
+
+    this.ctx.fillStyle = '#FFD700'; // Gold
+    this.ctx.font = '24px Arial';
+    this.ctx.strokeText(starStr, moneyX, moneyY + 60);
+    this.ctx.fillText(starStr, moneyX, moneyY + 60);
+
+    // --- DEBUG INFO ---
+    this.ctx.font = '12px monospace';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillStyle = 'lime';
+    this.ctx.strokeStyle = 'black';
+    this.ctx.lineWidth = 2;
+    const debugY = this.ctx.canvas.height - 20;
+    const debugText = `DEBUG: State: ${this.activeRestaurant.customers.length} customers | Hour: ${this.timeManager.hour}`;
+
+    this.ctx.strokeText(debugText, 10, debugY);
+    this.ctx.fillText(debugText, 10, debugY);
+
+    this.ctx.restore();
+
+    // Floating Texts
     this.drawFloatingTexts();
+  }
+
+  private drawButton(rect: {x: number, y: number, w: number, h: number}, text: string, isHovered: boolean): void {
+    this.ctx.save();
+
+    // Background
+    this.ctx.fillStyle = isHovered ? '#e0e0e0' : '#f0f0f0';
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 2;
+
+    this.ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    this.ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+    // Text
+    this.ctx.fillStyle = '#000';
+    this.ctx.font = 'bold 16px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(text, rect.x + rect.w / 2, rect.y + rect.h / 2);
+
+    this.ctx.restore();
   }
 
   private drawFloatingTexts(): void {
@@ -524,7 +598,26 @@ export class InteriorView {
 
     if (this.pizzaCreator.active) {
       this.pizzaCreator.handleMouseMove(event);
+      return;
     }
+
+    // Button Hover Logic
+    const mx = this.mousePosition.x;
+    const my = this.mousePosition.y;
+
+    if (this.isPointInRect(mx, my, BTN_CREATOR)) {
+      this.hoveredButton = 'creator';
+    } else if (this.isPointInRect(mx, my, BTN_MENU)) {
+      this.hoveredButton = 'menu';
+    } else if (this.isPointInRect(mx, my, this.getCityBtnRect())) {
+      this.hoveredButton = 'city';
+    } else {
+      this.hoveredButton = null;
+    }
+  }
+
+  private isPointInRect(x: number, y: number, rect: {x: number, y: number, w: number, h: number}): boolean {
+    return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
   }
 
   public handleWheel(event: WheelEvent): void {
@@ -545,7 +638,21 @@ export class InteriorView {
       return;
     }
 
-    // Check Furniture Panel Interaction
+    // 1. Check Top Buttons (Canvas UI)
+    if (this.isPointInRect(clickX, clickY, BTN_CREATOR)) {
+        this.pizzaCreator.open();
+        return;
+    }
+    if (this.isPointInRect(clickX, clickY, BTN_MENU)) {
+        this.menuManager.open();
+        return;
+    }
+    if (this.isPointInRect(clickX, clickY, this.getCityBtnRect())) {
+        if (this.changeViewCallback) this.changeViewCallback(null);
+        return;
+    }
+
+    // 2. Check Furniture Panel Interaction
     if (this.activeTab === 'furniture') {
         const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
         if (clickX >= panelX) {
@@ -558,7 +665,7 @@ export class InteriorView {
         }
     }
 
-    // World Interaction (Placing Furniture)
+    // 3. World Interaction (Placing Furniture)
     if (this.selectedFurniture) {
       if (event.button === 2) { // Right click
         this.selectedFurniture = null;
