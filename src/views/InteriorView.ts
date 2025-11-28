@@ -22,6 +22,13 @@ interface FloatingText {
 }
 
 // Layout Constants
+const UI_LAYOUT = {
+    BTN_KREATOR: { x: 10, y: 10, w: 150, h: 30 },
+    BTN_MENU: { x: 170, y: 10, w: 100, h: 30 },
+    BTN_MIASTO: { right: 10, y: 10, w: 140, h: 30 }, // 'right' oznacza offset od prawej krawędzi
+    HUD_STATS: { right: 170, y: 32 } // Tekst statystyk
+};
+
 const TOP_BAR_HEIGHT = 50;
 const SIDE_PANEL_WIDTH = 300;
 const MASTER_TAB_HEIGHT = 40;
@@ -251,16 +258,28 @@ export class InteriorView {
       ctx.fillRect(0, 0, width, TOP_BAR_HEIGHT);
 
       // 2. Top Bar Buttons
-      this.drawButton(ctx, 10, 10, 150, 30, '🍕 Kreator', '#e67e22');
-      this.drawButton(ctx, 170, 10, 100, 30, '📜 Menu', '#27ae60');
-      this.drawButton(ctx, width - 150, 10, 140, 30, '🏙️ Miasto', '#c0392b');
+      const btnKreator = UI_LAYOUT.BTN_KREATOR;
+      const btnMenu = UI_LAYOUT.BTN_MENU;
+      const btnMiasto = UI_LAYOUT.BTN_MIASTO;
+
+      this.drawButton(ctx, btnKreator.x, btnKreator.y, btnKreator.w, btnKreator.h, '🍕 Kreator', '#e67e22');
+      this.drawButton(ctx, btnMenu.x, btnMenu.y, btnMenu.w, btnMenu.h, '📜 Menu', '#27ae60');
+
+      const cityX = width - btnMiasto.right - btnMiasto.w;
+      this.drawButton(ctx, cityX, btnMiasto.y, btnMiasto.w, btnMiasto.h, '🏙️ Miasto', '#c0392b');
 
       // 3. Global HUD (Money)
-      const money = GameState.getInstance().player.money;
+      const gameState = GameState.getInstance();
+      const money = gameState.player.money;
+      const reputation = this.activeRestaurant.reputationSystem.getAverageRating().toFixed(1);
+      const time = gameState.timeManager.getFormattedTime();
+
+      const hudStats = UI_LAYOUT.HUD_STATS;
       ctx.fillStyle = '#f1c40f';
       ctx.font = 'bold 20px Arial';
       ctx.textAlign = 'right';
-      ctx.fillText(`$${money}`, width - 170, 32);
+      // Format: HH:MM | ★ 3.5 | $5000
+      ctx.fillText(`${time} | ★ ${reputation} | $${money}`, width - hudStats.right, hudStats.y);
 
       // 4. Side Panel Container
       const panelX = width - SIDE_PANEL_WIDTH;
@@ -563,18 +582,26 @@ export class InteriorView {
 
     // 1. Top Bar Interaction
     if (clickY < TOP_BAR_HEIGHT) {
-        // Creator (10, 10, 150, 30)
-        if (clickX >= 10 && clickX <= 160 && clickY >= 10 && clickY <= 40) {
+        const btnKreator = UI_LAYOUT.BTN_KREATOR;
+        const btnMenu = UI_LAYOUT.BTN_MENU;
+        const btnMiasto = UI_LAYOUT.BTN_MIASTO;
+
+        // Kreator
+        if (clickX >= btnKreator.x && clickX <= btnKreator.x + btnKreator.w &&
+            clickY >= btnKreator.y && clickY <= btnKreator.y + btnKreator.h) {
             this.pizzaCreator.open();
             return;
         }
-        // Menu (170, 10, 100, 30)
-        if (clickX >= 170 && clickX <= 270 && clickY >= 10 && clickY <= 40) {
+        // Menu
+        if (clickX >= btnMenu.x && clickX <= btnMenu.x + btnMenu.w &&
+            clickY >= btnMenu.y && clickY <= btnMenu.y + btnMenu.h) {
             this.menuManager.open();
             return;
         }
-        // City (width - 150, 10, 140, 30)
-        if (clickX >= width - 150 && clickX <= width - 10 && clickY >= 10 && clickY <= 40) {
+        // City
+        const cityX = width - btnMiasto.right - btnMiasto.w;
+        if (clickX >= cityX && clickX <= cityX + btnMiasto.w &&
+            clickY >= btnMiasto.y && clickY <= btnMiasto.y + btnMiasto.h) {
             changeView(null);
             return;
         }
