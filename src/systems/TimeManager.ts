@@ -61,4 +61,18 @@ export class TimeManager {
     const m = this.minute.toString().padStart(2, '0');
     return `${h}:${m}`;
   }
+
+  public getFormattedTime(): string {
+    return this.getTimeString();
+  }
+
+  public getDayOfWeek(): string {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    // Assuming Day 1 is Monday
+    return days[(this.day - 1) % 7];
+  }
+
+  public getFormattedDate(): string {
+    return `Day ${this.day}`;
+  }
 }

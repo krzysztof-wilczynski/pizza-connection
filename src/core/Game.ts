@@ -40,7 +40,7 @@ export class Game {
     this.map = new GameMap(10, 10);
     this.gameState = GameState.getInstance();
     this.assetManager = new AssetManager();
-    this.timeManager = new TimeManager();
+    this.timeManager = TimeManager.getInstance();
     this.hud = new HUD(this.gameState, this.timeManager);
 
     loadInitialData(this.gameState, this.map);

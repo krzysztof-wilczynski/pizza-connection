@@ -6,14 +6,12 @@ import { TimeManager } from '../systems/TimeManager';
 export class GameState {
   private static instance: GameState;
 
-  public gameDate: Date;
   public timeManager: TimeManager;
   public restaurants: Restaurant[];
   public player: Player;
   public ingredients: Map<string, Ingredient>; // Central ingredient registry
 
   private constructor() {
-    this.gameDate = new Date(); // Initial game date
     this.timeManager = TimeManager.getInstance();
     this.restaurants = [];
     this.player = new Player(500000); // Starting money
