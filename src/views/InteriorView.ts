@@ -631,7 +631,7 @@ export class InteriorView {
 
       if (this.activeTab === 'furniture') {
         const selected = this.furniturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
-        if (selected) this.selectedFurniture = selected;
+        if (selected) this.selectedFurniture = { ...selected }; // Clone to allow rotation without mutating catalog
       } else if (this.activeTab === 'staff') {
         this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
       } else if (this.activeTab === 'inventory') {
@@ -645,8 +645,11 @@ export class InteriorView {
 
     // World Interaction (Placing Furniture)
     if (this.selectedFurniture) {
-      if (event.button === 2) { // Right click
-        this.selectedFurniture = null;
+      if (event.button === 2) { // Right click (Rotate)
+        // Swap dimensions
+        const temp = this.selectedFurniture.width;
+        this.selectedFurniture.width = this.selectedFurniture.height;
+        this.selectedFurniture.height = temp;
         return;
       }
       const interiorOffsetX = this.ctx.canvas.width / 2;

@@ -95,6 +95,9 @@ export class Restaurant {
   private trySpawnCustomer() {
     const diningFurniture = this.furniture.filter(f => f.type === 'dining');
     const freeChairs = diningFurniture.filter(chair => {
+      // Must be a chair (ID 300-399), not a table (200-299)
+      if (chair.id < 300 || chair.id >= 400) return false;
+
       const chairId = CustomerAISystem.getFurnitureId(chair);
       const isTargeted = this.customers.some(c => c.targetFurnitureId === chairId);
       return !isTargeted;
@@ -134,6 +137,9 @@ export class Restaurant {
     }
 
     for (const placed of this.furniture) {
+      // Ignore collision if either item is a Rug (ID 402)
+      if (item.id === 402 || placed.id === 402) continue;
+
       if (
         x < placed.gridX + placed.width &&
         x + item.width > placed.gridX &&
