@@ -12,16 +12,6 @@ import { FurniturePanel } from './ui/FurniturePanel';
 import { StaffPanel } from './ui/StaffPanel';
 import { InventoryPanel } from './ui/InventoryPanel';
 
-const BACK_BUTTON_WIDTH = 180;
-const BACK_BUTTON_HEIGHT = 50;
-const BACK_BUTTON_MARGIN = 20;
-
-const FURNITURE_PANEL_WIDTH = 250;
-
-const BTN_CREATOR_RECT = {x: 10, y: 10, w: 200, h: 50};
-const BTN_MENU_RECT = {x: 220, y: 10, w: 100, h: 50};
-const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50};
-
 export class InteriorView {
   private ctx: CanvasRenderingContext2D;
   private activeRestaurant: Restaurant;
@@ -38,6 +28,23 @@ export class InteriorView {
   private staffPanel: StaffPanel;
   private inventoryPanel: InventoryPanel;
 
+  // UI Elements
+  private uiContainer: HTMLElement | null;
+  private btnBack: HTMLElement | null;
+  private btnCreator: HTMLElement | null;
+  private btnMenu: HTMLElement | null;
+
+  private tabFurniture: HTMLElement | null;
+  private tabStaff: HTMLElement | null;
+  private tabInventory: HTMLElement | null;
+
+  private contentFurniture: HTMLElement | null;
+  private contentStaff: HTMLElement | null;
+  private contentInventory: HTMLElement | null;
+
+  // View Change Callback
+  private changeViewCallback: ((newView: any) => void) | null = null;
+
   constructor(
     ctx: CanvasRenderingContext2D,
     activeRestaurant: Restaurant,
@@ -51,18 +58,90 @@ export class InteriorView {
     this.menuManager = new MenuManager(this.activeRestaurant);
 
     // Initialize Panels
-    this.furniturePanel = new FurniturePanel(ctx.canvas.width, ctx.canvas.height, assetManager);
-    this.staffPanel = new StaffPanel(ctx.canvas.width, ctx.canvas.height);
-    this.inventoryPanel = new InventoryPanel(ctx.canvas.width, ctx.canvas.height);
+    this.furniturePanel = new FurniturePanel(assetManager, (furniture) => {
+        this.selectedFurniture = furniture;
+    });
+    this.staffPanel = new StaffPanel();
+    this.inventoryPanel = new InventoryPanel();
 
     this.pizzaCreator.onSave = (pizza) => {
       this.activeRestaurant.menu.push(pizza);
       console.log(`Dodano pizzę ${pizza.name} do menu!`);
     };
+
+    // Grab UI Elements
+    this.uiContainer = document.getElementById('interior-ui');
+    this.btnBack = document.getElementById('btn-back');
+    this.btnCreator = document.getElementById('btn-creator');
+    this.btnMenu = document.getElementById('btn-menu');
+
+    this.tabFurniture = document.getElementById('tab-furniture');
+    this.tabStaff = document.getElementById('tab-staff');
+    this.tabInventory = document.getElementById('tab-inventory');
+
+    this.contentFurniture = document.getElementById('furniture-content');
+    this.contentStaff = document.getElementById('staff-content');
+    this.contentInventory = document.getElementById('inventory-content');
+
+    this.initUI();
+    this.showUI();
+  }
+
+  private initUI(): void {
+      if (this.btnBack) this.btnBack.onclick = () => {
+          if (this.changeViewCallback) this.changeViewCallback(null);
+      };
+
+      if (this.btnCreator) this.btnCreator.onclick = () => {
+          this.pizzaCreator.open();
+      };
+
+      if (this.btnMenu) this.btnMenu.onclick = () => {
+          this.menuManager.open();
+      };
+
+      // Tabs
+      if (this.tabFurniture) this.tabFurniture.onclick = () => this.switchTab('furniture');
+      if (this.tabStaff) this.tabStaff.onclick = () => this.switchTab('staff');
+      if (this.tabInventory) this.tabInventory.onclick = () => this.switchTab('inventory');
+  }
+
+  private switchTab(tab: 'furniture' | 'staff' | 'inventory'): void {
+      this.activeTab = tab;
+      this.selectedFurniture = null;
+
+      // Update Tab Classes
+      if (this.tabFurniture) this.tabFurniture.classList.toggle('active', tab === 'furniture');
+      if (this.tabStaff) this.tabStaff.classList.toggle('active', tab === 'staff');
+      if (this.tabInventory) this.tabInventory.classList.toggle('active', tab === 'inventory');
+
+      // Update Content Visibility
+      if (this.contentFurniture) this.contentFurniture.style.display = tab === 'furniture' ? 'block' : 'none';
+      if (this.contentStaff) this.contentStaff.style.display = tab === 'staff' ? 'block' : 'none';
+      if (this.contentInventory) this.contentInventory.style.display = tab === 'inventory' ? 'block' : 'none';
+
+      // Update Panel Contents
+      if (tab === 'furniture') this.furniturePanel.updateHTML();
+      if (tab === 'staff') this.staffPanel.updateHTML(this.activeRestaurant);
+      if (tab === 'inventory') this.inventoryPanel.updateHTML(this.activeRestaurant);
+  }
+
+  public showUI(): void {
+      if (this.uiContainer) this.uiContainer.style.display = 'block';
+      this.switchTab(this.activeTab); // Initialize first tab
+  }
+
+  public hideUI(): void {
+      if (this.uiContainer) this.uiContainer.style.display = 'none';
+      this.selectedFurniture = null;
   }
 
   public update(deltaTime: number): void {
     this.activeRestaurant.update(deltaTime);
+
+    // Update Panels if needed (e.g. inventory counts changing)
+    if (this.activeTab === 'staff') this.staffPanel.updateHTML(this.activeRestaurant);
+    if (this.activeTab === 'inventory') this.inventoryPanel.updateHTML(this.activeRestaurant);
   }
 
   public render(): void {
@@ -134,78 +213,8 @@ export class InteriorView {
 
     this.ctx.restore();
 
-    this.drawTempUI();
+    // Canvas UI Overlays that are "part of the scene" (like Creator)
     this.pizzaCreator.render(this.ctx);
-    this.menuManager.render(this.ctx);
-  }
-
-
-  private drawTempUI(): void {
-    // Creator Button
-    this.ctx.fillStyle = '#27ae60';
-    this.ctx.fillRect(BTN_CREATOR_RECT.x, BTN_CREATOR_RECT.y, BTN_CREATOR_RECT.w, BTN_CREATOR_RECT.h);
-    this.ctx.fillStyle = '#ecf0f1';
-    this.ctx.font = '20px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('Otwórz Kreator Pizzy', BTN_CREATOR_RECT.x + BTN_CREATOR_RECT.w/2, 40);
-
-    // Menu Button
-    this.ctx.fillStyle = '#8e44ad';
-    this.ctx.fillRect(BTN_MENU_RECT.x, BTN_MENU_RECT.y, BTN_MENU_RECT.w, BTN_MENU_RECT.h);
-    this.ctx.fillStyle = '#ecf0f1';
-    this.ctx.fillText('Menu', BTN_MENU_RECT.x + BTN_MENU_RECT.w/2, 40);
-
-    this.ctx.textAlign = 'left';
-
-    // Money HUD
-    const money = GameState.getInstance().player.money;
-    this.ctx.fillStyle = '#f1c40f'; // Gold color
-    this.ctx.font = 'bold 24px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText(`$${money.toLocaleString()}`, this.ctx.canvas.width / 2, 35);
-    this.ctx.textAlign = 'left';
-
-    this.drawBackButton();
-    this.drawTabButtons();
-
-    if (this.activeTab === 'furniture') {
-      this.furniturePanel.render(this.ctx);
-    } else if (this.activeTab === 'staff') {
-      this.staffPanel.render(this.ctx);
-    } else if (this.activeTab === 'inventory') {
-      this.inventoryPanel.render(this.ctx, this.activeRestaurant);
-    }
-  }
-
-  private drawTabButtons(): void {
-    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-
-    // Background for tabs
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    this.ctx.fillRect(panelX, 0, FURNITURE_PANEL_WIDTH, 40);
-
-    const tabWidth = FURNITURE_PANEL_WIDTH / 3;
-
-    // Furniture Tab
-    this.ctx.fillStyle = this.activeTab === 'furniture' ? '#666' : '#444';
-    this.ctx.fillRect(panelX, 0, tabWidth, 40);
-    this.ctx.fillStyle = '#fff';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.font = '12px Arial';
-    this.ctx.fillText('Meble', panelX + tabWidth / 2, 20);
-
-    // Staff Tab
-    this.ctx.fillStyle = this.activeTab === 'staff' ? '#666' : '#444';
-    this.ctx.fillRect(panelX + tabWidth, 0, tabWidth, 40);
-    this.ctx.fillStyle = '#fff';
-    this.ctx.fillText('Ludzie', panelX + tabWidth * 1.5, 20);
-
-    // Inventory Tab
-    this.ctx.fillStyle = this.activeTab === 'inventory' ? '#666' : '#444';
-    this.ctx.fillRect(panelX + tabWidth * 2, 0, tabWidth, 40);
-    this.ctx.fillStyle = '#fff';
-    this.ctx.fillText('Spiżarnia', panelX + tabWidth * 2.5, 20);
   }
 
   private drawFurnitureGhost(interiorOffsetX: number, interiorOffsetY: number): void {
@@ -257,18 +266,6 @@ export class InteriorView {
     }
 
     this.ctx.restore();
-  }
-
-  private drawBackButton(): void {
-    const x = BACK_BUTTON_MARGIN;
-    const y = this.ctx.canvas.height - BACK_BUTTON_HEIGHT - BACK_BUTTON_MARGIN;
-    this.ctx.fillStyle = '#c0392b';
-    this.ctx.fillRect(BTN_BACK_RECT.x, BTN_BACK_RECT.y, BTN_BACK_RECT.w, BTN_BACK_RECT.h);
-    this.ctx.fillStyle = 'white';
-    this.ctx.font = '20px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('Powrót do Miasta', x + BACK_BUTTON_WIDTH / 2, y + BACK_BUTTON_HEIGHT / 2);
   }
 
   private drawEmployee(employee: Employee): void {
@@ -420,83 +417,20 @@ export class InteriorView {
   }
 
   public handleWheel(event: WheelEvent): void {
-    if (this.menuManager.active) {
-      this.menuManager.handleWheel(event);
-    }
+    // MenuManager is now HTML based
+    // if (this.menuManager.active) {
+    //   this.menuManager.handleWheel(event);
+    // }
   }
 
   public handleMouseClick(event: MouseEvent, changeView: (newView: any) => void): void {
+    this.changeViewCallback = changeView;
     const rect = this.ctx.canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
-    // Check Global Back Button first
-    const backBtnY = this.ctx.canvas.height - BACK_BUTTON_HEIGHT - BACK_BUTTON_MARGIN;
-    if (clickX >= BACK_BUTTON_MARGIN && clickX <= BACK_BUTTON_MARGIN + BACK_BUTTON_WIDTH &&
-      clickY >= backBtnY && clickY <= backBtnY + BACK_BUTTON_HEIGHT) {
-      changeView(null);
-      return;
-    }
-
-    const mousePos = {x: clickX, y: clickY};
-
-    const isInside = (pos: { x: number, y: number }, rect: { x: number, y: number, w: number, h: number }) => {
-      return pos.x >= rect.x && pos.x <= rect.x + rect.w && pos.y >= rect.y && pos.y <= rect.y + rect.h;
-    };
-
-    if (this.menuManager.active) {
-      this.menuManager.handleMouseClick(event);
-      return;
-    }
-
     if (this.pizzaCreator.active) {
       this.pizzaCreator.handleMouseClick(event);
-      return;
-    }
-
-    // Buttons
-    if (isInside(mousePos, BTN_CREATOR_RECT)) {
-      this.pizzaCreator.open();
-      return;
-    }
-    if (isInside(mousePos, BTN_MENU_RECT)) {
-      this.menuManager.open();
-      return;
-    }
-    if (isInside(mousePos, BTN_BACK_RECT)) {
-      changeView(null);
-      return;
-    }
-
-    // Panel Interactions
-    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-    if (clickX >= panelX) {
-      // Tab Selection
-      if (clickY < 40) {
-        const tabWidth = FURNITURE_PANEL_WIDTH / 3;
-        if (clickX < panelX + tabWidth) {
-          this.activeTab = 'furniture';
-        } else if (clickX < panelX + tabWidth * 2) {
-          this.activeTab = 'staff';
-          this.selectedFurniture = null;
-        } else {
-          this.activeTab = 'inventory';
-          this.selectedFurniture = null;
-        }
-        return;
-      }
-
-      // Panel Content Interaction
-      if (this.activeTab === 'furniture') {
-        const selected = this.furniturePanel.handleClick(clickX, clickY);
-        if (selected) {
-          this.selectedFurniture = selected;
-        }
-      } else if (this.activeTab === 'staff') {
-        this.staffPanel.handleClick(clickX, clickY, this.activeRestaurant);
-      } else if (this.activeTab === 'inventory') {
-        this.inventoryPanel.handleClick(clickX, clickY, this.activeRestaurant);
-      }
       return;
     }
 
@@ -526,8 +460,5 @@ export class InteriorView {
         console.log("Not enough money");
       }
     }
-  }
-
-  public hideUI(): void {
   }
 }

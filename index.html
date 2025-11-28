@@ -9,15 +9,69 @@
 <body>
     <canvas id="gameCanvas"></canvas>
 
-    <div id="purchase-ui" class="ui-panel" style="display: none;">
+    <!-- Global/City UI (Purchase Property) -->
+    <div id="purchase-ui" class="ui-panel modal-card" style="display: none;">
         <h2>Buy Property</h2>
         <p>Price: <span id="property-price"></span></p>
-        <button id="buy-button">Buy</button>
-        <button id="cancel-button">Cancel</button>
+        <button id="buy-button" class="btn btn-primary">Buy</button>
+        <button id="cancel-button" class="btn btn-secondary">Cancel</button>
     </div>
 
-    <div id="interior-ui" class="ui-panel" style="display: none;">
-        <!-- Interior UI elements will be added here -->
+    <!-- Interior View UI -->
+    <div id="interior-ui" style="display: none;">
+
+        <!-- Top HUD -->
+        <div id="hud-bar">
+            <div class="hud-group">
+                <span class="hud-label">Money:</span>
+                <span id="hud-money" class="hud-value">$0</span>
+            </div>
+            <div class="hud-group">
+                <span class="hud-label">Reputation:</span>
+                <span id="hud-reputation" class="hud-value">★★★★★</span>
+            </div>
+            <div class="hud-group">
+                <span id="hud-time" class="hud-value">12:00</span>
+                <span id="hud-date" class="hud-sub">Mon, Day 1</span>
+            </div>
+        </div>
+
+        <!-- Right Side Panel (Tabs & Content) -->
+        <div id="side-panel">
+            <div class="tab-buttons">
+                <button id="tab-furniture" class="tab-btn active">Meble</button>
+                <button id="tab-staff" class="tab-btn">Personel</button>
+                <button id="tab-inventory" class="tab-btn">Spiżarnia</button>
+            </div>
+
+            <div id="panel-content">
+                <!-- Content will be injected here by TS classes -->
+                <div id="furniture-content" class="panel-section"></div>
+                <div id="staff-content" class="panel-section" style="display: none;"></div>
+                <div id="inventory-content" class="panel-section" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Left Controls -->
+        <div id="main-controls">
+            <button id="btn-back" class="btn btn-danger">Powrót do Miasta</button>
+            <button id="btn-creator" class="btn btn-success">Kreator Pizzy</button>
+            <button id="btn-menu" class="btn btn-primary">Menu</button>
+        </div>
+
+        <!-- Menu Manager Modal -->
+        <div id="menu-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h2>Karta Dań</h2>
+                    <button id="btn-close-menu" class="btn-close">X</button>
+                </div>
+                <div id="menu-list" class="modal-body">
+                    <!-- Menu items injected here -->
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script type="module" src="/src/core/main.ts"></script>
