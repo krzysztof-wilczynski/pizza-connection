@@ -8,6 +8,8 @@ import { GameState } from './GameState';
 import { ReputationSystem } from './ReputationSystem';
 import { CustomerAISystem } from '../systems/CustomerAISystem';
 import { EmployeeAISystem } from '../systems/EmployeeAISystem';
+import { InteriorTile } from './Tile';
+import { WallType, ZoneType } from './enums';
 
 export class Restaurant {
   public id: string;
@@ -21,14 +23,66 @@ export class Restaurant {
   public readyCounter: Order[] = [];
   private spawnTimer: number = 0;
 
-  public width: number = 10;
-  public height: number = 10;
+  public grid: InteriorTile[][];
 
   public appeal: number = 0; // Decoration appeal bonus
 
   constructor() {
     this.id = uuidv4();
     this.reputationSystem = new ReputationSystem();
+    this.grid = this.initializeGrid(10, 10);
+  }
+
+  private initializeGrid(width: number, height: number): InteriorTile[][] {
+    const grid: InteriorTile[][] = [];
+    for (let y = 0; y < height; y++) {
+      const row: InteriorTile[] = [];
+      for (let x = 0; x < width; x++) {
+        // Default layout: Top 3 rows Kitchen, rest Dining
+        const isKitchen = y < 3;
+        row.push({
+          x,
+          y,
+          isWalkable: true,
+          wallType: WallType.None,
+          zone: isKitchen ? ZoneType.Kitchen : ZoneType.Dining,
+          floorAsset: 'interior_floor_wood' // Default floor
+        });
+      }
+      grid.push(row);
+    }
+    return grid;
+  }
+
+  // Compatibility getters
+  public get width(): number {
+    return this.grid[0]?.length || 0;
+  }
+
+  public get height(): number {
+    return this.grid.length;
+  }
+
+  public getTile(x: number, y: number): InteriorTile | null {
+    if (y < 0 || y >= this.grid.length || x < 0 || x >= this.grid[0].length) {
+      return null;
+    }
+    return this.grid[y][x];
+  }
+
+  public setWall(x: number, y: number, type: WallType) {
+    const tile = this.getTile(x, y);
+    if (tile) {
+      tile.wallType = type;
+      tile.isWalkable = type === WallType.None;
+    }
+  }
+
+  public setZone(x: number, y: number, zone: ZoneType) {
+    const tile = this.getTile(x, y);
+    if (tile) {
+      tile.zone = zone;
+    }
   }
 
   public update(deltaTime: number) {
@@ -126,16 +180,22 @@ export class Restaurant {
 
   // --- Furniture Logic ---
 
-  public getTile(x: number, y: number): { type: string } | null {
-      if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
-      return { type: 'floor' };
-  }
-
   public addFurniture(item: Furniture, x: number, y: number): boolean {
+    // 1. Check bounds and walkability of tiles
     if (x < 0 || y < 0 || x + item.width > this.width || y + item.height > this.height) {
       return false;
     }
 
+    for (let row = 0; row < item.height; row++) {
+      for (let col = 0; col < item.width; col++) {
+        const tile = this.getTile(x + col, y + row);
+        if (!tile || !tile.isWalkable) {
+          return false; // Collision with wall or invalid tile
+        }
+      }
+    }
+
+    // 2. Check collision with existing furniture
     for (const placed of this.furniture) {
       // Ignore collision if either item is a Rug (ID 402)
       if (item.id === 402 || placed.id === 402) continue;

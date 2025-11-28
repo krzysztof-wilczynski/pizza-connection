@@ -1,4 +1,13 @@
-import { TileType } from './enums';
+import { TileType, WallType, ZoneType } from './enums';
+
+export interface InteriorTile {
+  x: number;
+  y: number;
+  isWalkable: boolean;
+  wallType: WallType;
+  zone: ZoneType;
+  floorAsset: string;
+}
 
 interface BaseTile {
   type: TileType;

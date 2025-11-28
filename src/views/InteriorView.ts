@@ -152,7 +152,7 @@ export class InteriorView {
 
     // Left Walls (col=0, row>0)
     if (wallLeft) {
-      for (let row = 1; row < 10; row++) {
+      for (let row = 1; row < this.activeRestaurant.height; row++) {
         const screenPos = gridToScreen(0, row);
         this.ctx.drawImage(
           wallLeft,
@@ -164,7 +164,7 @@ export class InteriorView {
 
     // Right Walls (row=0, col>0)
     if (wallRight) {
-      for (let col = 1; col < 10; col++) {
+      for (let col = 1; col < this.activeRestaurant.width; col++) {
         const screenPos = gridToScreen(col, 0);
         this.ctx.drawImage(
           wallRight,
@@ -174,10 +174,10 @@ export class InteriorView {
       }
     }
 
-    for (let row = 0; row < 10; row++) {
-      for (let col = 0; col < 10; col++) {
+    for (let row = 0; row < this.activeRestaurant.height; row++) {
+      for (let col = 0; col < this.activeRestaurant.width; col++) {
         const screenPos = gridToScreen(col, row);
-        this.drawTile(screenPos.x, screenPos.y);
+        this.drawTile(screenPos.x, screenPos.y, col, row);
       }
     }
 
@@ -385,7 +385,9 @@ export class InteriorView {
     const gridY = Math.floor(gridPos.y);
 
     let isValid = true;
-    if (gridX < 0 || gridY < 0 || gridX + this.selectedFurniture.width > 10 || gridY + this.selectedFurniture.height > 10) {
+    if (gridX < 0 || gridY < 0 ||
+        gridX + this.selectedFurniture.width > this.activeRestaurant.width ||
+        gridY + this.selectedFurniture.height > this.activeRestaurant.height) {
       isValid = false;
     } else {
       for (const placed of this.activeRestaurant.furniture) {
@@ -623,8 +625,18 @@ export class InteriorView {
     }
   }
 
-  private drawTile(x: number, y: number): void {
-    const floor = this.assetManager.getAsset('floor');
+  private drawTile(x: number, y: number, gridX: number, gridY: number): void {
+    const tile = this.activeRestaurant.getTile(gridX, gridY);
+    // Use mapped asset or fallback to 'interior_floor_wood' (which is the new default) or 'floor' (old legacy key)
+    // Note: The constructor now sets 'interior_floor_wood' as default.
+    // We map 'interior_floor_wood' -> 'interior_floor_wood'.
+    // Legacy 'floor' might be 'interior_floor_wood' in assets manifest.
+    const assetKey = tile?.floorAsset || 'interior_floor_wood';
+
+    // Check if asset exists, if not try 'floor' for legacy compatibility
+    let floor = this.assetManager.getAsset(assetKey);
+    if (!floor) floor = this.assetManager.getAsset('floor');
+
     if (floor && floor.naturalWidth > 0) {
       this.ctx.drawImage(floor, x - floor.naturalWidth / 2, y);
     } else {

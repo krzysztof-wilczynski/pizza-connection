@@ -29,6 +29,7 @@ export function loadInitialData(gameState: GameState, map: GameMap): void {
 
   // --- Initial Restaurant ---
   const initialRestaurant = new Restaurant();
+  // Grid layout is initialized in constructor (ZoneType, WallType, etc.)
   initialRestaurant.menu.push(margherita, pepperoniPizza);
   initialRestaurant.employees.push(chefGordon);
 

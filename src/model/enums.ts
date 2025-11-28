@@ -45,3 +45,18 @@ export enum GameView {
   City,
   Interior,
 }
+
+export enum ZoneType {
+  None,
+  Kitchen,
+  Dining,
+  Storage,
+  Restroom,
+  Staff
+}
+
+export enum WallType {
+  None,
+  Brick,
+  Drywall
+}
