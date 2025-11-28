@@ -38,7 +38,7 @@ export class Game {
     this.assetManager = new AssetManager();
     loadInitialData(this.gameState, this.map);
     this.uiManager = new UIManager();
-    this.pizzaCreator = new PizzaCreator();
+    this.pizzaCreator = new PizzaCreator(this.assetManager);
 
     this.cityView = new CityView(this.ctx, this.map, this.gameState, this.cameraOffset, this.uiManager, this.pizzaCreator, this.assetManager);
 
