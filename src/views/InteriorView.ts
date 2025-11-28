@@ -458,13 +458,13 @@ export class InteriorView {
 
       // 2. Blocked Reason (Missing Ingredients)
       if (employee.blockedReason) {
-         this.ctx.fillStyle = 'red';
-         this.ctx.font = 'bold 20px Arial';
-         this.ctx.textAlign = 'center';
-         this.ctx.fillText('!', screenPos.x, drawY - 20);
-         // Optional: Text description
-         // this.ctx.font = '10px Arial';
-         // this.ctx.fillText(employee.blockedReason, screenPos.x, drawY - 35);
+        this.ctx.fillStyle = 'red';
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('!', screenPos.x, drawY - 20);
+        // Optional: Text description
+        // this.ctx.font = '10px Arial';
+        // this.ctx.fillText(employee.blockedReason, screenPos.x, drawY - 35);
       }
     }
 
@@ -528,9 +528,9 @@ export class InteriorView {
       this.ctx.beginPath();
       // Check if roundRect exists (it's new in Canvas API)
       if (this.ctx.roundRect) {
-         this.ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 5);
+        this.ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 5);
       } else {
-         this.ctx.rect(bubbleX, bubbleY, bubbleW, bubbleH);
+        this.ctx.rect(bubbleX, bubbleY, bubbleW, bubbleH);
       }
       this.ctx.fill();
       this.ctx.stroke();
@@ -621,7 +621,9 @@ export class InteriorView {
       }
       this.ctx.restore();
     }
-  }  private drawTile(x: number, y: number): void {
+  }
+
+  private drawTile(x: number, y: number): void {
     const floor = this.assetManager.getAsset('floor');
     if (floor && floor.naturalWidth > 0) {
       this.ctx.drawImage(floor, x - floor.naturalWidth / 2, y);
@@ -721,8 +723,8 @@ export class InteriorView {
         this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
       } else if (this.activeTab === 'inventory') {
         const cost = this.inventoryPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
-        if (cost > 0) {
-           this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${cost}`, "red");
+        if (cost && cost > 0) {
+          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${cost}`, "red");
         }
       }
       return; // Consumed by UI
@@ -784,4 +786,6 @@ export class InteriorView {
         }
       }
     }
-  }}
+  }
+
+}
