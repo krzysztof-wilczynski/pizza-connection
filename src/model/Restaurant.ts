@@ -51,17 +51,17 @@ export class Restaurant {
   
   public hasIngredientsFor(pizza: Pizza): boolean {
     // Zakładamy uproszczenie: 1 sztuka każdego składnika na pizzę
-    for (const ingredientId of pizza.ingredients) {
-        const currentAmount = this.inventory.get(ingredientId) || 0;
+    for (const ingredient of pizza.ingredients) {
+        const currentAmount = this.inventory.get(ingredient.id) || 0;
         if (currentAmount < 1) return false;
     }
     return true;
   }
 
   public consumeIngredientsFor(pizza: Pizza): void {
-    for (const ingredientId of pizza.ingredients) {
-        const currentAmount = this.inventory.get(ingredientId) || 0;
-        this.inventory.set(ingredientId, Math.max(0, currentAmount - 1));
+    for (const ingredient of pizza.ingredients) {
+        const currentAmount = this.inventory.get(ingredient.id) || 0;
+        this.inventory.set(ingredient.id, Math.max(0, currentAmount - 1));
     }
   }
 
