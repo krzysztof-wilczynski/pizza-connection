@@ -80,6 +80,8 @@ export class Game {
     const deltaTime = timestamp - this.lastTime;
     this.lastTime = timestamp;
 
+    this.gameState.timeManager.update(deltaTime);
+
     switch (this.currentView) {
       case GameView.City:
         this.cityView.update(deltaTime);
