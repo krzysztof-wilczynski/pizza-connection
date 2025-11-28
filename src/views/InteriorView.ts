@@ -21,15 +21,10 @@ interface FloatingText {
   maxLife: number;
 }
 
-const BACK_BUTTON_WIDTH = 180;
-const BACK_BUTTON_HEIGHT = 50;
-const BACK_BUTTON_MARGIN = 20;
-
-const FURNITURE_PANEL_WIDTH = 250;
-
-const BTN_CREATOR_RECT = {x: 10, y: 10, w: 200, h: 50};
-const BTN_MENU_RECT = {x: 220, y: 10, w: 100, h: 50};
-const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50};
+// Layout Constants
+const TOP_BAR_HEIGHT = 50;
+const SIDE_PANEL_WIDTH = 300;
+const MASTER_TAB_HEIGHT = 40;
 
 export class InteriorView {
   private ctx: CanvasRenderingContext2D;
@@ -48,20 +43,6 @@ export class InteriorView {
   private furniturePanel: FurniturePanel;
   private staffPanel: StaffPanel;
   private inventoryPanel: InventoryPanel;
-
-  // UI Elements
-  private uiContainer: HTMLElement | null;
-  private btnBack: HTMLElement | null;
-  private btnCreator: HTMLElement | null;
-  private btnMenu: HTMLElement | null;
-
-  private tabFurniture: HTMLElement | null;
-  private tabStaff: HTMLElement | null;
-  private tabInventory: HTMLElement | null;
-
-  private contentFurniture: HTMLElement | null;
-  private contentStaff: HTMLElement | null;
-  private contentInventory: HTMLElement | null;
 
   // View Change Callback
   private changeViewCallback: ((newView: any) => void) | null = null;
@@ -90,71 +71,16 @@ export class InteriorView {
       console.log(`Dodano pizzę ${pizza.name} do menu!`);
     };
 
-    // Grab UI Elements
-    this.uiContainer = document.getElementById('interior-ui');
-    this.btnBack = document.getElementById('btn-back');
-    this.btnCreator = document.getElementById('btn-creator');
-    this.btnMenu = document.getElementById('btn-menu');
-
-    this.tabFurniture = document.getElementById('tab-furniture');
-    this.tabStaff = document.getElementById('tab-staff');
-    this.tabInventory = document.getElementById('tab-inventory');
-
-    // Content containers for old panels (kept for Staff/Inventory for now)
-    this.contentFurniture = document.getElementById('furniture-content');
-    this.contentStaff = document.getElementById('staff-content');
-    this.contentInventory = document.getElementById('inventory-content');
-
-    this.initUI();
-    this.showUI();
-  }
-
-  private initUI(): void {
-      if (this.btnBack) this.btnBack.onclick = () => {
-          if (this.changeViewCallback) this.changeViewCallback(null);
-      };
-
-      if (this.btnCreator) this.btnCreator.onclick = () => {
-          this.pizzaCreator.open();
-      };
-
-      if (this.btnMenu) this.btnMenu.onclick = () => {
-          this.menuManager.open();
-      };
-
-      // Tabs - DOM Based for top buttons if they exist
-      if (this.tabFurniture) this.tabFurniture.onclick = () => this.switchTab('furniture');
-      if (this.tabStaff) this.tabStaff.onclick = () => this.switchTab('staff');
-      if (this.tabInventory) this.tabInventory.onclick = () => this.switchTab('inventory');
-  }
-
-  private switchTab(tab: 'furniture' | 'staff' | 'inventory'): void {
-      this.activeTab = tab;
-      this.selectedFurniture = null;
-
-      // Update Tab Classes
-      if (this.tabFurniture) this.tabFurniture.classList.toggle('active', tab === 'furniture');
-      if (this.tabStaff) this.tabStaff.classList.toggle('active', tab === 'staff');
-      if (this.tabInventory) this.tabInventory.classList.toggle('active', tab === 'inventory');
-
-      // Update Content Visibility
-      // Furniture is now Canvas-based, so we hide the DOM content if it exists
-      if (this.contentFurniture) this.contentFurniture.style.display = 'none';
-      if (this.contentStaff) this.contentStaff.style.display = tab === 'staff' ? 'block' : 'none';
-      if (this.contentInventory) this.contentInventory.style.display = tab === 'inventory' ? 'block' : 'none';
-
-      // Update Panel Contents (Legacy)
-      if (tab === 'staff') this.staffPanel.updateHTML(this.activeRestaurant);
-      if (tab === 'inventory') this.inventoryPanel.updateHTML(this.activeRestaurant);
+    // Remove any legacy DOM elements if they exist
+    const uiContainer = document.getElementById('interior-ui');
+    if (uiContainer) uiContainer.style.display = 'none';
   }
 
   public showUI(): void {
-      if (this.uiContainer) this.uiContainer.style.display = 'block';
-      this.switchTab(this.activeTab); // Initialize first tab
+      // Nothing to do for Canvas UI, handled in render
   }
 
   public hideUI(): void {
-      if (this.uiContainer) this.uiContainer.style.display = 'none';
       this.selectedFurniture = null;
   }
 
@@ -185,6 +111,13 @@ export class InteriorView {
   }
 
   public render(): void {
+    // Note: Render logic assumes the context transform is reset or managed by Game.ts
+    // However, Game.ts does not clear transforms between views, so we should ensure we start clean or save/restore.
+    // Ideally, Game.ts should handle this, but for safety we can reset here.
+    // Since we use save/restore for the world, it should be fine.
+
+    // Clear screen
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to ensure full clear
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.ctx.fillStyle = '#6B4F35';
     this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -296,17 +229,99 @@ export class InteriorView {
     this.pizzaCreator.render(this.ctx);
     this.menuManager.render(this.ctx);
 
-    // Render Furniture Panel if active
-    if (this.activeTab === 'furniture') {
-        // Render on the right side
-        const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-        const panelY = 0; // Full height
-        const panelHeight = this.ctx.canvas.height;
-        this.furniturePanel.render(this.ctx, panelX, panelY, FURNITURE_PANEL_WIDTH, panelHeight);
-    }
+    // Render Main UI Overlay
+    this.renderUI(this.ctx);
 
     // Draw Floating Texts (Topmost Layer)
     this.drawFloatingTexts();
+  }
+
+  /**
+   * Main UI Rendering Method (Overlay)
+   */
+  private renderUI(ctx: CanvasRenderingContext2D): void {
+      // Ensure we are in screen coordinates
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      const width = ctx.canvas.width;
+      const height = ctx.canvas.height;
+
+      // 1. Top Bar Background
+      ctx.fillStyle = '#2c3e50';
+      ctx.fillRect(0, 0, width, TOP_BAR_HEIGHT);
+
+      // 2. Top Bar Buttons
+      this.drawButton(ctx, 10, 10, 150, 30, '🍕 Kreator', '#e67e22');
+      this.drawButton(ctx, 170, 10, 100, 30, '📜 Menu', '#27ae60');
+      this.drawButton(ctx, width - 150, 10, 140, 30, '🏙️ Miasto', '#c0392b');
+
+      // 3. Global HUD (Money)
+      const money = GameState.getInstance().player.money;
+      ctx.fillStyle = '#f1c40f';
+      ctx.font = 'bold 20px Arial';
+      ctx.textAlign = 'right';
+      ctx.fillText(`$${money}`, width - 170, 32);
+
+      // 4. Side Panel Container
+      const panelX = width - SIDE_PANEL_WIDTH;
+      const panelY = TOP_BAR_HEIGHT;
+      const panelH = height - TOP_BAR_HEIGHT;
+
+      // Draw Panel Background
+      ctx.fillStyle = '#281e14'; // Match FurniturePanel bg
+      ctx.fillRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
+      ctx.strokeStyle = '#8B4513';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
+
+      // 5. Master Tabs
+      const tabWidth = SIDE_PANEL_WIDTH / 3;
+      const tabs = [
+          { key: 'furniture', label: '🏠' },
+          { key: 'staff', label: '👥' },
+          { key: 'inventory', label: '📦' }
+      ];
+
+      tabs.forEach((tab, index) => {
+          const tX = panelX + index * tabWidth;
+          const tY = panelY;
+          const isActive = this.activeTab === tab.key;
+
+          ctx.fillStyle = isActive ? '#A0522D' : '#553322';
+          ctx.fillRect(tX, tY, tabWidth, MASTER_TAB_HEIGHT);
+          ctx.strokeRect(tX, tY, tabWidth, MASTER_TAB_HEIGHT);
+
+          ctx.fillStyle = '#FFF';
+          ctx.font = '20px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(tab.label, tX + tabWidth / 2, tY + MASTER_TAB_HEIGHT / 2);
+      });
+
+      // 6. Active Sub-Panel
+      const contentY = panelY + MASTER_TAB_HEIGHT;
+      const contentH = panelH - MASTER_TAB_HEIGHT;
+
+      if (this.activeTab === 'furniture') {
+          this.furniturePanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH);
+      } else if (this.activeTab === 'staff') {
+          this.staffPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
+      } else if (this.activeTab === 'inventory') {
+          this.inventoryPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
+      }
+  }
+
+  private drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, text: string, color: string): void {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#FFF';
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.fillStyle = '#FFF';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, x + w / 2, y + h / 2);
   }
 
   private drawFloatingTexts(): void {
@@ -528,10 +543,8 @@ export class InteriorView {
   }
 
   public handleWheel(event: WheelEvent): void {
-    // MenuManager is now HTML based
-    // if (this.menuManager.active) {
-    //   this.menuManager.handleWheel(event);
-    // }
+    // Scroll handling for panels?
+    // We would need to pass this to active panel
   }
 
   public handleMouseClick(event: MouseEvent, changeView: (newView: any) => void): void {
@@ -545,17 +558,56 @@ export class InteriorView {
       return;
     }
 
-    // Check Furniture Panel Interaction
-    if (this.activeTab === 'furniture') {
-        const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-        if (clickX >= panelX) {
-            // Click inside panel
-            const selected = this.furniturePanel.handleClick(clickX - panelX, clickY, FURNITURE_PANEL_WIDTH);
-            if (selected) {
-                this.selectedFurniture = selected;
-            }
-            return; // Don't propagate click to world if clicked on panel
+    const width = this.ctx.canvas.width;
+    const height = this.ctx.canvas.height;
+
+    // 1. Top Bar Interaction
+    if (clickY < TOP_BAR_HEIGHT) {
+        // Creator (10, 10, 150, 30)
+        if (clickX >= 10 && clickX <= 160 && clickY >= 10 && clickY <= 40) {
+            this.pizzaCreator.open();
+            return;
         }
+        // Menu (170, 10, 100, 30)
+        if (clickX >= 170 && clickX <= 270 && clickY >= 10 && clickY <= 40) {
+            this.menuManager.open();
+            return;
+        }
+        // City (width - 150, 10, 140, 30)
+        if (clickX >= width - 150 && clickX <= width - 10 && clickY >= 10 && clickY <= 40) {
+            changeView(null);
+            return;
+        }
+    }
+
+    // 2. Side Panel Interaction
+    const panelX = width - SIDE_PANEL_WIDTH;
+    if (clickX >= panelX && clickY >= TOP_BAR_HEIGHT) {
+        // Check Master Tabs
+        if (clickY <= TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT) {
+            const tabWidth = SIDE_PANEL_WIDTH / 3;
+            const localX = clickX - panelX;
+            const index = Math.floor(localX / tabWidth);
+            if (index === 0) this.activeTab = 'furniture';
+            if (index === 1) this.activeTab = 'staff';
+            if (index === 2) this.activeTab = 'inventory';
+            return;
+        }
+
+        // Delegate to Sub-Panel
+        const contentY = TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT;
+        const localX = clickX - panelX;
+        const localY = clickY - contentY;
+
+        if (this.activeTab === 'furniture') {
+            const selected = this.furniturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
+            if (selected) this.selectedFurniture = selected;
+        } else if (this.activeTab === 'staff') {
+            this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
+        } else if (this.activeTab === 'inventory') {
+            this.inventoryPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
+        }
+        return; // Consumed by UI
     }
 
     // World Interaction (Placing Furniture)

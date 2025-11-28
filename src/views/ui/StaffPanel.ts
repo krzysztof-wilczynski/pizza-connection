@@ -1,110 +1,154 @@
-import { EmployeeRole } from '../../model/enums';
+import { EmployeeRole, EmployeeState } from '../../model/enums';
 import { GameState } from '../../model/GameState';
 import { Restaurant } from '../../model/Restaurant';
 import { Employee } from '../../model/Employee';
 
 export class StaffPanel {
-  private container: HTMLElement | null;
+  private scrollY: number = 0;
+  private readonly ITEM_HEIGHT = 80;
 
-  constructor() {
-    this.container = document.getElementById('staff-content');
-  }
+  // Hiring Candidates
+  private candidates = [
+    { role: 'Kucharz', cost: 500, type: EmployeeRole.Chef, desc: 'Cooks pizzas.' },
+    { role: 'Kelner', cost: 300, type: EmployeeRole.Waiter, desc: 'Serves customers.' }
+  ];
 
-  public updateHTML(restaurant: Restaurant): void {
-    if (!this.container) return;
-    this.container.innerHTML = '';
+  constructor() {}
 
-    const candidates = [
-      { role: 'Kucharz', cost: 500, type: EmployeeRole.Chef, desc: 'Cooks pizzas.' },
-      { role: 'Kelner', cost: 300, type: EmployeeRole.Waiter, desc: 'Serves customers.' }
-    ];
+  public render(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, restaurant: Restaurant): void {
+    // Content Background
+    ctx.fillStyle = 'rgba(40, 30, 20, 0.95)';
+    ctx.fillRect(x, y, width, height);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
 
     const playerMoney = GameState.getInstance().player.money;
+    let currentY = y - this.scrollY + 10; // 10px padding top
 
-    candidates.forEach((cand) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'list-item';
+    // --- SECTION: HIRE NEW ---
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('HIRE STAFF', x + 10, currentY);
+    currentY += 25;
 
-        // Icon Placeholder
-        const icon = document.createElement('div');
-        icon.className = 'list-item-icon';
-        icon.style.backgroundColor = cand.type === EmployeeRole.Chef ? '#fff' : '#000';
-        icon.innerText = cand.type === EmployeeRole.Chef ? '👨‍🍳' : '🤵';
-        icon.style.display = 'flex';
-        icon.style.justifyContent = 'center';
-        icon.style.alignItems = 'center';
-        icon.style.fontSize = '24px';
-        itemDiv.appendChild(icon);
-
-        // Details
-        const detailsDiv = document.createElement('div');
-        detailsDiv.className = 'list-item-details';
-
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'item-name';
-        nameSpan.innerText = cand.role;
-
-        const costSpan = document.createElement('span');
-        costSpan.className = 'item-meta';
-        costSpan.innerText = `$${cand.cost} - ${cand.desc}`;
-
-        detailsDiv.appendChild(nameSpan);
-        detailsDiv.appendChild(costSpan);
-        itemDiv.appendChild(detailsDiv);
-
-        // Action Button
-        const actionBtn = document.createElement('button');
-        actionBtn.className = 'btn btn-success';
-        actionBtn.style.padding = '5px 10px';
-        actionBtn.innerText = 'Hire';
-
-        const canAfford = playerMoney >= cand.cost;
-        if (!canAfford) {
-            actionBtn.disabled = true;
-            actionBtn.className = 'btn btn-secondary';
-            actionBtn.innerText = 'No Funds';
+    this.candidates.forEach((cand, index) => {
+        // Skip if out of view
+        if (currentY + this.ITEM_HEIGHT < y || currentY > y + height) {
+            currentY += this.ITEM_HEIGHT + 10;
+            return;
         }
 
-        actionBtn.onclick = () => {
-            this.hireEmployee(cand.type, cand.cost, restaurant);
-            this.updateHTML(restaurant); // Refresh UI (e.g. money update)
-        };
+        // Card Background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.fillRect(x + 5, currentY, width - 10, this.ITEM_HEIGHT);
 
-        itemDiv.appendChild(actionBtn);
-        this.container?.appendChild(itemDiv);
+        // Icon / Emoji
+        ctx.fillStyle = cand.type === EmployeeRole.Chef ? '#fff' : '#000';
+        ctx.fillRect(x + 15, currentY + 15, 40, 40);
+        ctx.fillStyle = cand.type === EmployeeRole.Chef ? '#000' : '#fff';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(cand.type === EmployeeRole.Chef ? '👨‍🍳' : '🤵', x + 35, currentY + 42);
+
+        // Info
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(cand.role, x + 65, currentY + 20);
+
+        ctx.fillStyle = '#AAA';
+        ctx.font = '12px Arial';
+        ctx.fillText(cand.desc, x + 65, currentY + 38);
+
+        // Button (Hire)
+        const canAfford = playerMoney >= cand.cost;
+        const btnColor = canAfford ? '#4CAF50' : '#555';
+        ctx.fillStyle = btnColor;
+        ctx.fillRect(x + width - 80, currentY + 20, 70, 30);
+
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`$${cand.cost}`, x + width - 45, currentY + 40);
+
+        currentY += this.ITEM_HEIGHT + 5;
     });
 
-    // List Existing Staff (Optional, but good for management)
-    if (restaurant.employees.length > 0) {
-        const header = document.createElement('h3');
-        header.innerText = 'Current Staff';
-        header.style.marginTop = '20px';
-        this.container.appendChild(header);
+    // --- SECTION: CURRENT STAFF ---
+    currentY += 20;
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('CURRENT STAFF', x + 10, currentY);
+    currentY += 25;
 
+    if (restaurant.employees.length === 0) {
+        ctx.fillStyle = '#AAA';
+        ctx.font = 'italic 14px Arial';
+        ctx.fillText("No employees yet.", x + 10, currentY);
+    } else {
         restaurant.employees.forEach(emp => {
-            const empDiv = document.createElement('div');
-            empDiv.className = 'list-item';
-            empDiv.innerHTML = `
-                <div class="list-item-details">
-                    <span class="item-name">${emp.name}</span>
-                    <span class="item-meta">${emp.role} (Lvl ${emp.level})</span>
-                </div>
-            `;
-            this.container?.appendChild(empDiv);
+             // Simple list item for existing staff
+             if (currentY + 40 < y || currentY > y + height) {
+                 currentY += 45;
+                 return;
+             }
+
+             ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+             ctx.fillRect(x + 5, currentY, width - 10, 40);
+
+             ctx.fillStyle = '#FFF';
+             ctx.font = '14px Arial';
+             ctx.textAlign = 'left';
+             ctx.fillText(`${emp.name} (${emp.role})`, x + 10, currentY + 25);
+
+             currentY += 45;
         });
     }
+
+    ctx.restore();
+  }
+
+  public handleClick(localX: number, localY: number, width: number, restaurant: Restaurant): void {
+      let currentY = 10 - this.scrollY; // Match render Start Y
+
+      // Skip Header
+      currentY += 25;
+
+      const playerMoney = GameState.getInstance().player.money;
+
+      // Check Hire Buttons
+      for (const cand of this.candidates) {
+          const btnX = width - 80;
+          const btnY = currentY + 20;
+          const btnW = 70;
+          const btnH = 30;
+
+          // Check if click is on this row's button
+          // Actually, let's just make the whole button clickable
+          if (localY >= btnY && localY <= btnY + btnH && localX >= btnX && localX <= btnX + btnW) {
+              if (playerMoney >= cand.cost) {
+                  this.hireEmployee(cand.type, cand.cost, restaurant);
+              }
+              return;
+          }
+
+          currentY += this.ITEM_HEIGHT + 5;
+      }
+
+      // Scroll handling could be added here if needed (e.g., drag)
   }
 
   private hireEmployee(role: EmployeeRole, cost: number, restaurant: Restaurant): void {
     const player = GameState.getInstance().player;
-    if (player.money < cost) {
-      console.log("Not enough money to hire!");
-      return;
-    }
 
     const spot = this.findFreeSpot(restaurant);
     if (!spot) {
-      alert("No free space for new employee!");
+      console.log("No free space!"); // In a real UI we'd show a toast
       return;
     }
 
@@ -115,10 +159,11 @@ export class StaffPanel {
     employee.gridY = spot.y;
 
     restaurant.employees.push(employee);
-    console.log(`Hired ${name} at ${spot.x}, ${spot.y}`);
+    // console.log(`Hired ${name}`);
   }
 
   private findFreeSpot(restaurant: Restaurant): { x: number, y: number } | null {
+    // Simple spiral or linear search for a free spot
     for (let y = 1; y < restaurant.height - 1; y++) {
       for (let x = 1; x < restaurant.width - 1; x++) {
         if (this.isSpotFree(x, y, restaurant)) {
@@ -133,7 +178,6 @@ export class StaffPanel {
     const tile = restaurant.getTile(x, y);
     if (!tile || tile.type === 'wall') return false;
 
-    // Check furniture
     for (const item of restaurant.furniture) {
       if (x >= item.gridX && x < item.gridX + item.width &&
         y >= item.gridY && y < item.gridY + item.height) {
@@ -141,7 +185,6 @@ export class StaffPanel {
       }
     }
 
-    // Check other employees
     for (const emp of restaurant.employees) {
       if (emp.gridX === x && emp.gridY === y) return false;
     }
