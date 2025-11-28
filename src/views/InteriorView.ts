@@ -436,6 +436,7 @@ export class InteriorView {
 
     // --- Visual Indicators ---
     if (employee.role === EmployeeRole.Chef) {
+      // 1. Progress Bar (Working)
       if (employee.state === EmployeeState.Working && employee.currentOrder) {
         const barWidth = 40;
         const barHeight = 5;
@@ -447,23 +448,17 @@ export class InteriorView {
 
         this.ctx.fillStyle = '#0f0';
         this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / 100), barHeight);
-      } else if (employee.state === EmployeeState.Idle) {
-        const hasPendingOrders = this.activeRestaurant.kitchenQueue.some(o => o.state === OrderState.Pending);
-        if (hasPendingOrders) {
-          const blockedOrder = this.activeRestaurant.kitchenQueue.find(o =>
-            o.state === OrderState.Pending && !this.activeRestaurant.hasIngredientsFor(o.pizza)
-          );
+      }
 
-          if (blockedOrder) {
-            this.ctx.fillStyle = 'red';
-            this.ctx.font = 'bold 20px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('!', screenPos.x, drawY - 10);
-            this.ctx.strokeStyle = 'white';
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeText('!', screenPos.x, drawY - 10);
-          }
-        }
+      // 2. Blocked Reason (Missing Ingredients)
+      if (employee.blockedReason) {
+         this.ctx.fillStyle = 'red';
+         this.ctx.font = 'bold 20px Arial';
+         this.ctx.textAlign = 'center';
+         this.ctx.fillText('!', screenPos.x, drawY - 20);
+         // Optional: Text description
+         // this.ctx.font = '10px Arial';
+         // this.ctx.fillText(employee.blockedReason, screenPos.x, drawY - 35);
       }
     }
 
@@ -639,7 +634,10 @@ export class InteriorView {
       } else if (this.activeTab === 'staff') {
         this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
       } else if (this.activeTab === 'inventory') {
-        this.inventoryPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
+        const cost = this.inventoryPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
+        if (cost > 0) {
+           this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${cost}`, "red");
+        }
       }
       return; // Consumed by UI
     }

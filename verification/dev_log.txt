@@ -1,0 +1,76 @@
+
+> app@1.0.0 dev
+> npm run generate-assets && vite
+
+
+> app@1.0.0 generate-assets
+> node generate_assets.js
+
+--- Rozpoczynam generowanie assetów ---
+Zapisano plik: city/residential/house_01.svg
+Zapisano plik: city/residential/tenement_corner.svg
+Zapisano plik: city/residential/tenement_tall.svg
+Zapisano plik: city/commercial/office.svg
+Zapisano plik: city/commercial/restaurant.svg
+Zapisano plik: city/commercial/shop_awning.svg
+Zapisano plik: city/industrial/hurtownia.svg
+Zapisano plik: city/empty.svg
+Zapisano plik: city/roads/road_straight.svg
+Zapisano plik: city/roads/road_corner.svg
+Zapisano plik: city/roads/road_cross.svg
+Zapisano plik: city/nature/tree_oak.svg
+Zapisano plik: city/nature/tree_pine.svg
+Zapisano plik: city/landmarks/construction.svg
+Zapisano plik: city/landmarks/fountain.svg
+Zapisano plik: interior/floor_wood.svg
+Zapisano plik: interior/floor_checkered.svg
+Zapisano plik: interior/wall_left.svg
+Zapisano plik: interior/wall_right.svg
+Zapisano plik: interior/wall_corner.svg
+Zapisano plik: furniture/kitchen/oven.svg
+Zapisano plik: furniture/kitchen/prep_counter.svg
+Zapisano plik: furniture/kitchen/sink.svg
+Zapisano plik: furniture/kitchen/fridge.svg
+Zapisano plik: furniture/tables/table_round_wood.svg
+Zapisano plik: furniture/tables/table_plastic.svg
+Zapisano plik: furniture/tables/table_diner.svg
+Zapisano plik: furniture/tables/table_glass.svg
+Zapisano plik: furniture/tables/table_rustic.svg
+Zapisano plik: furniture/seating/chair_simple.svg
+Zapisano plik: furniture/seating/chair_plastic.svg
+Zapisano plik: furniture/seating/chair_leather.svg
+Zapisano plik: furniture/seating/booth_corner.svg
+Zapisano plik: furniture/seating/booth_straight.svg
+Zapisano plik: furniture/seating/bench_wood.svg
+Zapisano plik: furniture/decor/plant_small.svg
+Zapisano plik: furniture/decor/plant_palm.svg
+Zapisano plik: furniture/decor/trash_can.svg
+Zapisano plik: furniture/decor/vending_machine.svg
+Zapisano plik: furniture/decor/jukebox.svg
+Zapisano plik: furniture/decor/lamp_floor.svg
+Zapisano plik: furniture/decor/rug_round.svg
+Zapisano plik: furniture/decor/painting_wall.svg
+Zapisano plik: furniture/decor/window_wall.svg
+Zapisano plik: furniture/misc/reception_desk.svg
+Zapisano plik: furniture/misc/pinball.svg
+Zapisano plik: furniture/misc/cardboard_box.svg
+Zapisano plik: furniture/misc/cash_register.svg
+Zapisano plik: people/chef.svg
+Zapisano plik: people/waiter.svg
+Zapisano plik: people/customer.svg
+Zapisano plik: ingredients/dough.svg
+Zapisano plik: ingredients/sauce.svg
+Zapisano plik: ingredients/cheese.svg
+Zapisano plik: ingredients/salami.svg
+Zapisano plik: ingredients/ham.svg
+Zapisano plik: ingredients/mushroom.svg
+Zapisano plik: ingredients/pepper.svg
+Zapisano plik: ingredients/onion.svg
+Zapisano plik: ingredients/olive.svg
+Zapisano plik: ingredients/basil.svg
+--- Zakończono sukcesem! ---
+
+  VITE v7.2.4  ready in 241 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose

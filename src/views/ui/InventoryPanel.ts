@@ -93,7 +93,7 @@ export class InventoryPanel {
     ctx.restore();
   }
 
-  public handleClick(localX: number, localY: number, width: number, restaurant: Restaurant): void {
+  public handleClick(localX: number, localY: number, width: number, restaurant: Restaurant): number {
       let currentY = 10 - this.scrollY;
       currentY += 25; // Header
 
@@ -108,10 +108,14 @@ export class InventoryPanel {
           const btnH = 30;
 
           if (localY >= btnY && localY <= btnY + btnH && localX >= btnX && localX <= btnX + btnW) {
-             restaurant.buyIngredient(ing.id, buyAmount, buyCost);
-             return;
+             const success = restaurant.buyIngredient(ing.id, buyAmount, buyCost);
+             if (success) {
+               return buyCost;
+             }
+             return 0;
           }
           currentY += this.ITEM_HEIGHT + 5;
       }
+      return 0;
   }
 }
