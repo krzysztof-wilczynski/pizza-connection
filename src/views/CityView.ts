@@ -54,12 +54,16 @@ export class CityView {
                 if (tile) {
                     const screenPos = gridToScreen(col, row);
                     if (tile.type === TileType.BuildingForSale) {
-                        this.drawBuilding(screenPos.x, screenPos.y, '#a8a8a8', 'building_sale');
+                        this.drawBuilding(screenPos.x, screenPos.y, '#a8a8a8', 'city_residential_house_01');
                     } else if (tile.type === TileType.BuildingOwned) {
-                        this.drawBuilding(screenPos.x, screenPos.y, '#4CAF50', 'building_owned');
+                        this.drawBuilding(screenPos.x, screenPos.y, '#4CAF50', 'city_commercial_restaurant');
+                    } else if (tile.type === TileType.Road) {
+                         if (!this.drawIsoImage(screenPos.x, screenPos.y, 'city_roads_road_straight')) {
+                             this.drawTile(screenPos.x, screenPos.y, '#444');
+                         }
                     } else {
                          // Draw pavement/road tiles
-                        this.drawTile(screenPos.x, screenPos.y, tile.type === TileType.Road ? '#444' : '#666');
+                        this.drawTile(screenPos.x, screenPos.y, '#666');
                     }
                 }
             }
@@ -81,7 +85,7 @@ export class CityView {
         this.ctx.stroke();
     }
 
-    private drawBuilding(x: number, y: number, color: string, assetKey: string): void {
+    private drawIsoImage(x: number, y: number, assetKey: string): boolean {
         const img = this.assetManager.getAsset(assetKey);
         if (img && img.naturalWidth > 0) {
             const drawWidth = img.naturalWidth;
@@ -89,6 +93,13 @@ export class CityView {
             const offsetX = drawWidth / 2;
             const offsetY = drawHeight - (TILE_HEIGHT_HALF * 2);
             this.ctx.drawImage(img, x - offsetX, y - offsetY, drawWidth, drawHeight);
+            return true;
+        }
+        return false;
+    }
+
+    private drawBuilding(x: number, y: number, color: string, assetKey: string): void {
+        if (this.drawIsoImage(x, y, assetKey)) {
             return;
         }
 
