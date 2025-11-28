@@ -332,7 +332,7 @@ export class PizzaCreator {
 
     // --- Pizza Area ---
     // Draw Dough
-    const doughImg = this.assetManager.getImage('ingredients_dough');
+    const doughImg = this.assetManager.getAsset('ingredients_dough');
     if (doughImg) {
         ctx.drawImage(
             doughImg,
@@ -351,7 +351,7 @@ export class PizzaCreator {
 
     // Draw Placed Ingredients
     this.selectedIngredients.forEach(placed => {
-        const img = this.assetManager.getImage(placed.ingredient.assetKey);
+        const img = this.assetManager.getAsset(placed.ingredient.assetKey);
         if (img) {
             ctx.drawImage(
                 img,
@@ -371,7 +371,7 @@ export class PizzaCreator {
 
     // Draw Ghost (Active Tool)
     if (this.activeTool && distance(this.mousePos, this.pizzaArea) < this.pizzaArea.radius) {
-        const img = this.assetManager.getImage(this.activeTool.assetKey);
+        const img = this.assetManager.getAsset(this.activeTool.assetKey);
         ctx.globalAlpha = 0.5;
         if (img) {
              ctx.drawImage(
@@ -422,7 +422,7 @@ export class PizzaCreator {
         ctx.fillRect(this.ingredientsPanel.x, itemY, this.ingredientsPanel.width, UIConstants.INGREDIENT_ITEM_HEIGHT);
 
         // Icon
-        const img = this.assetManager.getImage(ingredient.assetKey);
+        const img = this.assetManager.getAsset(ingredient.assetKey);
         if (img) {
             // Draw scaled icon
             const iconSize = 30;
