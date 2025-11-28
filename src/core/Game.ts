@@ -49,6 +49,7 @@ export class Game {
     this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
     this.canvas.addEventListener('click', this.handleMouseClick.bind(this));
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.canvas.addEventListener('wheel', this.handleWheel.bind(this));
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
 
     this.cameraOffset.x = this.canvas.width / 2;
@@ -117,6 +118,12 @@ export class Game {
 
   private handleMouseUp(event: MouseEvent): void {
     if (this.pizzaCreator.active) this.pizzaCreator.handleMouseUp(event);
+  }
+
+  private handleWheel(event: WheelEvent): void {
+    if (this.currentView === GameView.Interior && this.interiorView) {
+      this.interiorView.handleWheel(event);
+    }
   }
 
   private handleMouseClick(event: MouseEvent): void {

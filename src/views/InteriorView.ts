@@ -2,6 +2,7 @@ import {gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF} from '../
 import {Furniture, PlacedFurniture} from '../model/Furniture';
 import {FURNITURE_CATALOG} from '../data/FurnitureCatalog';
 import {PizzaCreator} from './PizzaCreator';
+import {MenuManager} from './MenuManager';
 import {Restaurant} from '../model/Restaurant';
 import {AssetManager} from '../systems/AssetManager';
 import {GameState} from '../model/GameState';
@@ -19,7 +20,8 @@ const FURNITURE_ITEM_HEIGHT = 60;
 const FURNITURE_ITEM_MARGIN = 10;
 
 const BTN_CREATOR_RECT = {x: 10, y: 10, w: 200, h: 50};
-const BTN_BACK_RECT = {x: 230, y: 10, w: 180, h: 50}; // Przesunięty w prawo!
+const BTN_MENU_RECT = {x: 220, y: 10, w: 100, h: 50};
+const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50}; // Przesunięty w prawo!
 
 // Recruitment UI Constants
 const RECRUIT_PANEL_WIDTH = 200; // Unused in drawStaffPanel logic but kept for safety
@@ -34,6 +36,7 @@ export class InteriorView {
   private ctx: CanvasRenderingContext2D;
   private activeRestaurant: Restaurant;
   private pizzaCreator: PizzaCreator;
+  private menuManager: MenuManager;
   private assetManager: AssetManager;
 
   private selectedFurniture: Furniture | null = null;
@@ -50,6 +53,7 @@ export class InteriorView {
     this.activeRestaurant = activeRestaurant;
     this.pizzaCreator = pizzaCreator;
     this.assetManager = assetManager;
+    this.menuManager = new MenuManager(this.activeRestaurant);
 
     // Set callback for when a pizza is created
     this.pizzaCreator.onSave = (pizza) => {
@@ -133,6 +137,7 @@ export class InteriorView {
 
     this.drawTempUI();
     this.pizzaCreator.render(this.ctx);
+    this.menuManager.render(this.ctx);
   }
 
 
@@ -143,7 +148,14 @@ export class InteriorView {
     this.ctx.fillStyle = '#ecf0f1';
     this.ctx.font = '20px Arial';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('Otwórz Kreator Pizzy', 110, 40);
+    this.ctx.fillText('Otwórz Kreator Pizzy', BTN_CREATOR_RECT.x + BTN_CREATOR_RECT.w/2, 40);
+
+    // Menu Button
+    this.ctx.fillStyle = '#8e44ad';
+    this.ctx.fillRect(BTN_MENU_RECT.x, BTN_MENU_RECT.y, BTN_MENU_RECT.w, BTN_MENU_RECT.h);
+    this.ctx.fillStyle = '#ecf0f1';
+    this.ctx.fillText('Menu', BTN_MENU_RECT.x + BTN_MENU_RECT.w/2, 40);
+
     this.ctx.textAlign = 'left';
 
     // Money HUD
@@ -589,6 +601,17 @@ export class InteriorView {
     const rect = this.ctx.canvas.getBoundingClientRect();
     this.mousePosition.x = event.clientX - rect.left;
     this.mousePosition.y = event.clientY - rect.top;
+
+    if (this.pizzaCreator.active) {
+      this.pizzaCreator.handleMouseMove(event);
+    }
+    // MenuManager doesn't need hover effects for now, but could be added here
+  }
+
+  public handleWheel(event: WheelEvent): void {
+    if (this.menuManager.active) {
+      this.menuManager.handleWheel(event);
+    }
   }
 
   public handleMouseClick(event: MouseEvent, changeView: (newView: any) => void): void {
@@ -609,10 +632,26 @@ export class InteriorView {
 
     const mousePos = {x: event.clientX - rect.left, y: event.clientY - rect.top};
 
+    if (this.menuManager.active) {
+      this.menuManager.handleMouseClick(event);
+      return;
+    }
+
+    if (this.pizzaCreator.active) {
+      this.pizzaCreator.handleMouseClick(event);
+      return;
+    }
+
     // 1. Sprawdź Kreator
     if (isInside(mousePos, BTN_CREATOR_RECT)) {
       console.log("Kliknięto Kreator!"); // Debug
       this.pizzaCreator.open();
+      return;
+    }
+
+    // 2. Sprawdź Menu
+    if (isInside(mousePos, BTN_MENU_RECT)) {
+      this.menuManager.open();
       return;
     }
 

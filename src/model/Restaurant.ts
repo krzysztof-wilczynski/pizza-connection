@@ -174,6 +174,24 @@ export class Restaurant {
       return { type: 'floor' }; // Default to floor for now
   }
 
+  // --- Menu Management ---
+
+  public removePizza(pizzaId: string): void {
+    this.menu = this.menu.filter(p => p.id !== pizzaId);
+    // Also remove any pending orders for this pizza?
+    // Maybe not needed if we assume orders in progress finish normally.
+    // But new customers won't order it.
+  }
+
+  public updatePizzaPrice(pizzaId: string, newPrice: number): void {
+    const pizza = this.menu.find(p => p.id === pizzaId);
+    if (pizza) {
+      pizza.salePrice = newPrice;
+    }
+  }
+
+  // --- Furniture Logic ---
+
   public addFurniture(item: Furniture, x: number, y: number): boolean {
     if (x < 0 || y < 0 || x + item.width > this.width || y + item.height > this.height) {
       return false;
