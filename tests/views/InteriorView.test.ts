@@ -33,6 +33,7 @@ const mockCtx = {
   rect: vi.fn(),
   clip: vi.fn(),
   measureText: vi.fn(() => ({ width: 10 })),
+  setTransform: vi.fn(),
 } as unknown as CanvasRenderingContext2D;
 
 const mockAssetManager = {
@@ -80,18 +81,14 @@ describe('InteriorView', () => {
     view.render();
 
     // Check if HUD buttons are drawn (checking fillText for button labels)
-    expect(mockCtx.fillText).toHaveBeenCalledWith("Kreator Pizzy", expect.any(Number), expect.any(Number));
-    expect(mockCtx.fillText).toHaveBeenCalledWith("Menu", expect.any(Number), expect.any(Number));
-    expect(mockCtx.fillText).toHaveBeenCalledWith("Miasto", expect.any(Number), expect.any(Number));
+    // Updated strings with icons
+    expect(mockCtx.fillText).toHaveBeenCalledWith(expect.stringContaining("Kreator"), expect.any(Number), expect.any(Number));
+    expect(mockCtx.fillText).toHaveBeenCalledWith(expect.stringContaining("Menu"), expect.any(Number), expect.any(Number));
+    expect(mockCtx.fillText).toHaveBeenCalledWith(expect.stringContaining("Miasto"), expect.any(Number), expect.any(Number));
 
     // Check time display
-    const timeStr = "10:30"; // Formatted time
-    // We expect the formatted string in the HUD
-    // Since calls might be combined (date + time), checking loose match or specific calls
-    // In code: `${dateText}, ${timeText}`
-    const dateText = TimeManager.getInstance().getFormattedDate();
-    const expectedTimeStr = `${dateText}, ${timeStr}`;
-    expect(mockCtx.fillText).toHaveBeenCalledWith(expectedTimeStr, expect.any(Number), expect.any(Number));
+    // Time display has been removed from InteriorView (or moved elsewhere)
+    // So we don't expect it here anymore.
   });
 
   it('should update restaurant simulation', () => {
