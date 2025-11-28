@@ -13,6 +13,7 @@ import {StaffPanel} from './ui/StaffPanel';
 import {InventoryPanel} from './ui/InventoryPanel';
 import {ArchitecturePanel} from './ui/ArchitecturePanel';
 import {WallType, ZoneType} from '../model/enums';
+import {InteriorTile} from '../model/Tile';
 
 interface FloatingText {
   x: number;
@@ -157,9 +158,10 @@ export class InteriorView {
       for (let x = 0; x < this.activeRestaurant.width; x++) {
         const tile = this.activeRestaurant.getTile(x, y);
         if (tile && tile.wallType !== WallType.None) {
+          const assetKey = this.getWallAsset(this.activeRestaurant.grid, x, y);
           renderList.push({
             type: 'wall',
-            obj: { x, y, type: tile.wallType },
+            obj: { x, y, type: tile.wallType, assetKey },
             sortDepth: x + y
           });
         }
@@ -213,8 +215,8 @@ export class InteriorView {
         const c = item.obj as Customer;
         this.drawCustomer(c);
       } else if (item.type === 'wall') {
-        const w = item.obj as { x: number, y: number, type: WallType };
-        this.drawWall(w.x, w.y, w.type);
+        const w = item.obj as { x: number, y: number, type: WallType, assetKey: string };
+        this.drawWall(w.x, w.y, w.type, w.assetKey);
       }
     });
 
@@ -613,18 +615,36 @@ export class InteriorView {
     }
   }
 
-  private drawWall(x: number, y: number, type: WallType): void {
-    // Determine wall asset based on position (HACK for now to simulate perspective)
-    // In a real system, walls might need specific directional assets
-    let assetName = 'interior_wall_corner';
+  private getWallAsset(grid: InteriorTile[][], x: number, y: number): string {
+    const height = grid.length;
+    const width = grid[0].length;
 
-    // Check neighbors to decide generic direction (very simple logic)
-    // If we are at the edge, use edge walls
-    if (x === 0 && y > 0) assetName = 'interior_wall_left';
-    if (y === 0 && x > 0) assetName = 'interior_wall_right';
+    const hasWall = (nx: number, ny: number) => {
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) return false;
+      return grid[ny][nx].wallType !== WallType.None;
+    };
 
-    // Override for specific wall types if we had assets
-    // if (type === WallType.Brick) ...
+    const n = hasWall(x, y - 1); // North
+    const s = hasWall(x, y + 1); // South
+    const w = hasWall(x - 1, y); // West
+    const e = hasWall(x + 1, y); // East
+
+    const hasVertical = n || s;
+    const hasHorizontal = w || e;
+
+    if (hasVertical && hasHorizontal) {
+      return 'interior_wall_corner';
+    } else if (hasVertical) {
+      return 'interior_wall_right';
+    } else if (hasHorizontal) {
+      return 'interior_wall_left';
+    } else {
+      return 'interior_wall_corner';
+    }
+  }
+
+  private drawWall(x: number, y: number, type: WallType, assetKey?: string): void {
+    const assetName = assetKey || 'interior_wall_corner';
 
     const img = this.assetManager.getAsset(assetName);
     const screenPos = gridToScreen(x, y);
