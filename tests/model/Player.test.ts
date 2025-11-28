@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Player } from './Player';
+import { Player } from '../../src/model/Player';
 
 describe('Player', () => {
   it('should start with the correct amount of money', () => {

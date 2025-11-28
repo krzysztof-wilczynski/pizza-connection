@@ -1,6 +1,5 @@
 import {gridToScreen, screenToGrid, TILE_HEIGHT_HALF, TILE_WIDTH_HALF} from '../systems/Isometric';
 import {Furniture, PlacedFurniture} from '../model/Furniture';
-import {FURNITURE_CATALOG} from '../data/FurnitureCatalog';
 import {PizzaCreator} from './PizzaCreator';
 import {MenuManager} from './MenuManager';
 import {Restaurant} from '../model/Restaurant';
@@ -9,28 +8,19 @@ import {GameState} from '../model/GameState';
 import {Employee} from '../model/Employee';
 import {Customer} from '../model/Customer';
 import {EmployeeRole, EmployeeState, CustomerState, OrderState} from '../model/enums';
-import {INGREDIENT_DEFINITIONS} from '../data/ingredientDefinitions';
+import { FurniturePanel } from './ui/FurniturePanel';
+import { StaffPanel } from './ui/StaffPanel';
+import { InventoryPanel } from './ui/InventoryPanel';
 
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
 const BACK_BUTTON_MARGIN = 20;
 
 const FURNITURE_PANEL_WIDTH = 250;
-const FURNITURE_ITEM_HEIGHT = 60;
-const FURNITURE_ITEM_MARGIN = 10;
 
 const BTN_CREATOR_RECT = {x: 10, y: 10, w: 200, h: 50};
 const BTN_MENU_RECT = {x: 220, y: 10, w: 100, h: 50};
-const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50}; // Przesunięty w prawo!
-
-// Recruitment UI Constants
-const RECRUIT_PANEL_WIDTH = 200; // Unused in drawStaffPanel logic but kept for safety
-const RECRUIT_BTN_HEIGHT = 50;
-const RECRUIT_BTN_MARGIN = 10;
-
-// Inventory UI Constants
-const INVENTORY_ITEM_HEIGHT = 70;
-const INVENTORY_ITEM_MARGIN = 10;
+const BTN_BACK_RECT = {x: 330, y: 10, w: 180, h: 50};
 
 export class InteriorView {
   private ctx: CanvasRenderingContext2D;
@@ -42,6 +32,11 @@ export class InteriorView {
   private selectedFurniture: Furniture | null = null;
   private mousePosition = {x: 0, y: 0};
   private activeTab: 'furniture' | 'staff' | 'inventory' = 'furniture';
+
+  // Sub-panels
+  private furniturePanel: FurniturePanel;
+  private staffPanel: StaffPanel;
+  private inventoryPanel: InventoryPanel;
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -55,7 +50,11 @@ export class InteriorView {
     this.assetManager = assetManager;
     this.menuManager = new MenuManager(this.activeRestaurant);
 
-    // Set callback for when a pizza is created
+    // Initialize Panels
+    this.furniturePanel = new FurniturePanel(ctx.canvas.width, ctx.canvas.height, assetManager);
+    this.staffPanel = new StaffPanel(ctx.canvas.width, ctx.canvas.height);
+    this.inventoryPanel = new InventoryPanel(ctx.canvas.width, ctx.canvas.height);
+
     this.pizzaCreator.onSave = (pizza) => {
       this.activeRestaurant.menu.push(pizza);
       console.log(`Dodano pizzę ${pizza.name} do menu!`);
@@ -168,12 +167,13 @@ export class InteriorView {
 
     this.drawBackButton();
     this.drawTabButtons();
+
     if (this.activeTab === 'furniture') {
-      this.drawFurniturePanel();
+      this.furniturePanel.render(this.ctx);
     } else if (this.activeTab === 'staff') {
-      this.drawStaffPanel();
+      this.staffPanel.render(this.ctx);
     } else if (this.activeTab === 'inventory') {
-      this.drawInventoryPanel();
+      this.inventoryPanel.render(this.ctx, this.activeRestaurant);
     }
   }
 
@@ -208,140 +208,6 @@ export class InteriorView {
     this.ctx.fillText('Spiżarnia', panelX + tabWidth * 2.5, 20);
   }
 
-  private drawFurniturePanel(): void {
-    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-    const panelY = 40; // Below tabs
-
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.fillRect(panelX, panelY, FURNITURE_PANEL_WIDTH, this.ctx.canvas.height - panelY);
-
-    const playerMoney = GameState.getInstance().player.money;
-
-    FURNITURE_CATALOG.forEach((item, index) => {
-      const itemY = panelY + (FURNITURE_ITEM_HEIGHT + FURNITURE_ITEM_MARGIN) * index + FURNITURE_ITEM_MARGIN;
-      this.ctx.fillStyle = '#555';
-      this.ctx.fillRect(panelX + FURNITURE_ITEM_MARGIN, itemY, FURNITURE_PANEL_WIDTH - 2 * FURNITURE_ITEM_MARGIN, FURNITURE_ITEM_HEIGHT);
-
-      // Icon
-      const img = this.assetManager.getAsset(item.assetKey);
-      const iconX = panelX + FURNITURE_ITEM_MARGIN * 2;
-      const iconY = itemY + FURNITURE_ITEM_MARGIN;
-      const iconSize = 40;
-
-      if (img && img.naturalWidth > 0) {
-        // Preserve aspect ratio or fit? Fit is safer for UI
-        this.ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
-      } else {
-        this.ctx.fillStyle = item.color;
-        this.ctx.fillRect(iconX, iconY, iconSize, iconSize);
-      }
-
-      const canAfford = playerMoney >= item.price;
-      this.ctx.fillStyle = canAfford ? 'white' : '#ff4444';
-      this.ctx.font = '16px Arial';
-      this.ctx.textAlign = 'left';
-      this.ctx.textBaseline = 'top';
-      this.ctx.fillText(item.name, panelX + FURNITURE_ITEM_MARGIN * 3 + 40, itemY + FURNITURE_ITEM_MARGIN);
-
-      this.ctx.font = '14px Arial';
-      this.ctx.fillStyle = canAfford ? '#ccc' : '#ff4444';
-      this.ctx.fillText(`$${item.price}`, panelX + FURNITURE_ITEM_MARGIN * 3 + 40, itemY + FURNITURE_ITEM_MARGIN + 20);
-    });
-  }
-
-  private drawStaffPanel(): void {
-    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-    const panelY = 40; // Below tabs
-
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.fillRect(panelX, panelY, FURNITURE_PANEL_WIDTH, this.ctx.canvas.height - panelY);
-
-    const candidates = [
-      {role: 'Kucharz', cost: 500, type: EmployeeRole.Chef},
-      {role: 'Kelner', cost: 300, type: EmployeeRole.Waiter}
-    ];
-
-    const playerMoney = GameState.getInstance().player.money;
-
-    candidates.forEach((cand, index) => {
-      const itemY = panelY + (RECRUIT_BTN_HEIGHT + RECRUIT_BTN_MARGIN) * index + RECRUIT_BTN_MARGIN;
-
-      this.ctx.fillStyle = '#555';
-      this.ctx.fillRect(panelX + RECRUIT_BTN_MARGIN, itemY, FURNITURE_PANEL_WIDTH - 2 * RECRUIT_BTN_MARGIN, RECRUIT_BTN_HEIGHT);
-
-      const canAfford = playerMoney >= cand.cost;
-      this.ctx.fillStyle = canAfford ? 'white' : '#ff4444';
-      this.ctx.font = '16px Arial';
-      this.ctx.textAlign = 'left';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillText(cand.role, panelX + 20, itemY + RECRUIT_BTN_HEIGHT / 2);
-
-      this.ctx.textAlign = 'right';
-      this.ctx.fillText(`$${cand.cost}`, panelX + FURNITURE_PANEL_WIDTH - 20, itemY + RECRUIT_BTN_HEIGHT / 2);
-    });
-  }
-
-  private drawInventoryPanel(): void {
-    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-    const panelY = 40;
-
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.fillRect(panelX, panelY, FURNITURE_PANEL_WIDTH, this.ctx.canvas.height - panelY);
-
-    const playerMoney = GameState.getInstance().player.money;
-
-    INGREDIENT_DEFINITIONS.forEach((ing, index) => {
-      const itemY = panelY + (INVENTORY_ITEM_HEIGHT + INVENTORY_ITEM_MARGIN) * index + INVENTORY_ITEM_MARGIN;
-
-      // Background
-      this.ctx.fillStyle = '#555';
-      this.ctx.fillRect(panelX + INVENTORY_ITEM_MARGIN, itemY, FURNITURE_PANEL_WIDTH - 2 * INVENTORY_ITEM_MARGIN, INVENTORY_ITEM_HEIGHT);
-
-      // Icon (Circle)
-      // Color logic based on type or name (simple mapping)
-      const colors: Record<string, string> = {
-        'tomato_sauce': '#e74c3c',
-        'cheese': '#f1c40f',
-        'pepperoni': '#c0392b',
-        'dough': '#f5deb3'
-      };
-      this.ctx.fillStyle = colors[ing.id] || '#fff';
-      this.ctx.beginPath();
-      this.ctx.arc(panelX + INVENTORY_ITEM_MARGIN + 20, itemY + 20, 10, 0, Math.PI * 2);
-      this.ctx.fill();
-
-      // Name
-      this.ctx.fillStyle = 'white';
-      this.ctx.font = '14px Arial';
-      this.ctx.textAlign = 'left';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillText(ing.name, panelX + INVENTORY_ITEM_MARGIN + 40, itemY + 20);
-
-      // Current Stock
-      const currentStock = this.activeRestaurant.inventory.get(ing.id) || 0;
-      this.ctx.textAlign = 'right';
-      this.ctx.fillText(`Stan: ${currentStock}`, panelX + FURNITURE_PANEL_WIDTH - 20, itemY + 20);
-
-      // Buy Button
-      const buyAmount = 5;
-      const buyCost = ing.baseCost * buyAmount;
-      const canAfford = playerMoney >= buyCost;
-
-      const btnX = panelX + INVENTORY_ITEM_MARGIN + 10;
-      const btnY = itemY + 35;
-      const btnW = FURNITURE_PANEL_WIDTH - 2 * INVENTORY_ITEM_MARGIN - 20;
-      const btnH = 25;
-
-      this.ctx.fillStyle = canAfford ? '#27ae60' : '#7f8c8d';
-      this.ctx.fillRect(btnX, btnY, btnW, btnH);
-
-      this.ctx.fillStyle = 'white';
-      this.ctx.textAlign = 'center';
-      this.ctx.font = '12px Arial';
-      this.ctx.fillText(`Kup ${buyAmount} szt. ($${buyCost.toFixed(2)})`, btnX + btnW / 2, btnY + btnH / 2);
-    });
-  }
-
   private drawFurnitureGhost(interiorOffsetX: number, interiorOffsetY: number): void {
     if (!this.selectedFurniture) return;
 
@@ -371,41 +237,9 @@ export class InteriorView {
     // Draw ghost
     this.ctx.save();
     this.ctx.globalAlpha = 0.6;
+    this.drawFurniture(gridX, gridY, this.selectedFurniture, true);
 
-    // Draw the furniture visuals
-    this.drawFurniture(gridX, gridY, this.selectedFurniture, true); // Force 'true' here to draw normal colors first
-
-    // If invalid, overlay red
     if (!isValid) {
-      // Re-calculate screen position (same logic as inside drawFurniture)
-      const img = this.assetManager.getAsset(this.selectedFurniture.assetKey);
-      const screenPos = gridToScreen(gridX, gridY);
-
-      this.ctx.globalCompositeOperation = 'source-atop'; // Only draw on top of existing pixels
-      this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-
-      if (img && img.naturalWidth > 0) {
-        const drawX = screenPos.x - img.naturalWidth / 2;
-        const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
-        this.ctx.fillRect(drawX, drawY, img.naturalWidth, img.naturalHeight);
-      } else {
-        // Fallback rect logic if no image
-        // This is complex to match exactly without duplicating code, so simple overlay:
-        // We'll rely on drawFurniture's internal red fallback if we passed false,
-        // but we wanted to "tint" the real asset.
-        // Simplified approach: Just set tint.
-
-        // Since drawFurniture restores context, we can't easily draw ON TOP of it inside this function without knowing exact bounds.
-        // Let's retry:
-        // We will modify drawFurniture to handle a "tint" or we just draw a red rect over the area roughly.
-      }
-
-      // Simpler approach requested:
-      // "Jeśli !isValid (kolizja): nałóż czerwoną maskę (ctx.globalCompositeOperation lub proste wypełnienie rgba(255, 0, 0, 0.5))."
-      // The issue is getting the exact shape of the isometric sprite for the mask.
-      // Let's use source-atop on a second draw call? No, that's heavy.
-      // Let's keep it simple: Draw a red diamond at the base.
-
       const p1 = gridToScreen(gridX, gridY);
       const p2 = gridToScreen(gridX + this.selectedFurniture.width, gridY);
       const p3 = gridToScreen(gridX + this.selectedFurniture.width, gridY + this.selectedFurniture.height);
@@ -428,7 +262,7 @@ export class InteriorView {
   private drawBackButton(): void {
     const x = BACK_BUTTON_MARGIN;
     const y = this.ctx.canvas.height - BACK_BUTTON_HEIGHT - BACK_BUTTON_MARGIN;
-    this.ctx.fillStyle = '#c0392b'; // Inny kolor dla odróżnienia
+    this.ctx.fillStyle = '#c0392b';
     this.ctx.fillRect(BTN_BACK_RECT.x, BTN_BACK_RECT.y, BTN_BACK_RECT.w, BTN_BACK_RECT.h);
     this.ctx.fillStyle = 'white';
     this.ctx.font = '20px Arial';
@@ -447,13 +281,11 @@ export class InteriorView {
     if (img && img.naturalWidth > 0) {
       this.ctx.drawImage(img, drawX, drawY);
     } else {
-      // Fallback rectangle
       this.ctx.fillStyle = employee.role === EmployeeRole.Chef ? 'white' : 'black';
       this.ctx.fillRect(drawX, drawY, 20, 40);
     }
 
     // --- Visual Indicators ---
-    // Chef: Working -> Progress Bar
     if (employee.role === EmployeeRole.Chef) {
       if (employee.state === EmployeeState.Working && employee.currentOrder) {
         const barWidth = 40;
@@ -467,22 +299,17 @@ export class InteriorView {
         this.ctx.fillStyle = '#0f0';
         this.ctx.fillRect(barX, barY, barWidth * (employee.currentOrder.progress / 100), barHeight);
       } else if (employee.state === EmployeeState.Idle) {
-        // Check if waiting for ingredients
         const hasPendingOrders = this.activeRestaurant.kitchenQueue.some(o => o.state === OrderState.Pending);
         if (hasPendingOrders) {
-          // Check if ANY pending order is blocked by ingredients
           const blockedOrder = this.activeRestaurant.kitchenQueue.find(o =>
             o.state === OrderState.Pending && !this.activeRestaurant.hasIngredientsFor(o.pizza)
           );
 
           if (blockedOrder) {
-            // Draw "No Ingredients" Alert
             this.ctx.fillStyle = 'red';
             this.ctx.font = 'bold 20px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.fillText('!', screenPos.x, drawY - 10);
-
-            // Optional: Draw a small crate icon or something
             this.ctx.strokeStyle = 'white';
             this.ctx.lineWidth = 1;
             this.ctx.strokeText('!', screenPos.x, drawY - 10);
@@ -491,19 +318,8 @@ export class InteriorView {
       }
     }
 
-    // Waiter: Walking with food -> Pizza Icon
-    // Removed erroneous progress bar drawing using undefined barX/barY variables
-
-    // Waiter: Walking with food -> Pizza Icon
-    // Check if waiter has an order that is ready or served (meaning they are carrying it)
-    // In our logic, if they have an order and are walking to customer, the order state is still Ready (removed from counter) or Served?
-    // Waiter logic: "Jak dojdzie do klienta: Usuń order z systemu." so while walking it is still "currentOrder"
     if (employee.role === EmployeeRole.Waiter && employee.currentOrder && employee.state === EmployeeState.Walking) {
-      // We want to show pizza only if they have picked it up.
-      // Our logic: Walk to Counter (no order in hand, but target set).
-      // Then Pickup -> Walk to Customer (has currentOrder).
-      // So if `currentOrder` is not null, they are carrying it.
-      const pizzaIcon = this.assetManager.getAsset('pizza_icon'); // Assumption: asset exists or we draw circle
+      const pizzaIcon = this.assetManager.getAsset('pizza_icon');
       if (pizzaIcon && pizzaIcon.naturalWidth > 0) {
         this.ctx.drawImage(pizzaIcon, screenPos.x, drawY - 20, 20, 20);
       } else {
@@ -525,20 +341,16 @@ export class InteriorView {
     if (img && img.naturalWidth > 0) {
       this.ctx.drawImage(img, drawX, drawY);
     } else {
-      // Fallback for customer
       this.ctx.fillStyle = 'blue';
       this.ctx.fillRect(drawX, drawY, 20, 40);
     }
 
-    // --- Visual Indicators ---
-    // WaitingForFood -> Clock/Icon
     if (customer.state === CustomerState.WaitingForFood) {
       this.ctx.fillStyle = 'white';
       this.ctx.beginPath();
       this.ctx.arc(screenPos.x, drawY - 15, 8, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // Draw clock hands (static for now)
       this.ctx.strokeStyle = 'black';
       this.ctx.lineWidth = 2;
       this.ctx.beginPath();
@@ -605,7 +417,6 @@ export class InteriorView {
     if (this.pizzaCreator.active) {
       this.pizzaCreator.handleMouseMove(event);
     }
-    // MenuManager doesn't need hover effects for now, but could be added here
   }
 
   public handleWheel(event: WheelEvent): void {
@@ -619,6 +430,7 @@ export class InteriorView {
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
+    // Check Global Back Button first
     const backBtnY = this.ctx.canvas.height - BACK_BUTTON_HEIGHT - BACK_BUTTON_MARGIN;
     if (clickX >= BACK_BUTTON_MARGIN && clickX <= BACK_BUTTON_MARGIN + BACK_BUTTON_WIDTH &&
       clickY >= backBtnY && clickY <= backBtnY + BACK_BUTTON_HEIGHT) {
@@ -626,11 +438,11 @@ export class InteriorView {
       return;
     }
 
+    const mousePos = {x: clickX, y: clickY};
+
     const isInside = (pos: { x: number, y: number }, rect: { x: number, y: number, w: number, h: number }) => {
       return pos.x >= rect.x && pos.x <= rect.x + rect.w && pos.y >= rect.y && pos.y <= rect.y + rect.h;
     };
-
-    const mousePos = {x: event.clientX - rect.left, y: event.clientY - rect.top};
 
     if (this.menuManager.active) {
       this.menuManager.handleMouseClick(event);
@@ -642,28 +454,24 @@ export class InteriorView {
       return;
     }
 
-    // 1. Sprawdź Kreator
+    // Buttons
     if (isInside(mousePos, BTN_CREATOR_RECT)) {
-      console.log("Kliknięto Kreator!"); // Debug
       this.pizzaCreator.open();
       return;
     }
-
-    // 2. Sprawdź Menu
     if (isInside(mousePos, BTN_MENU_RECT)) {
       this.menuManager.open();
       return;
     }
-
-    // 2. Sprawdź Powrót
     if (isInside(mousePos, BTN_BACK_RECT)) {
       changeView(null);
       return;
     }
 
+    // Panel Interactions
     const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
     if (clickX >= panelX) {
-      // Handle Tab Clicks
+      // Tab Selection
       if (clickY < 40) {
         const tabWidth = FURNITURE_PANEL_WIDTH / 3;
         if (clickX < panelX + tabWidth) {
@@ -678,53 +486,21 @@ export class InteriorView {
         return;
       }
 
-      // Handle Panel Clicks
+      // Panel Content Interaction
       if (this.activeTab === 'furniture') {
-        FURNITURE_CATALOG.forEach((item, i) => {
-          const itemY = 40 + (FURNITURE_ITEM_HEIGHT + FURNITURE_ITEM_MARGIN) * i + FURNITURE_ITEM_MARGIN;
-          if (clickY >= itemY && clickY <= itemY + FURNITURE_ITEM_HEIGHT) {
-            this.selectedFurniture = {...item};
-          }
-        });
+        const selected = this.furniturePanel.handleClick(clickX, clickY);
+        if (selected) {
+          this.selectedFurniture = selected;
+        }
       } else if (this.activeTab === 'staff') {
-        const candidates = [
-          {role: 'Kucharz', cost: 500, type: EmployeeRole.Chef},
-          {role: 'Kelner', cost: 300, type: EmployeeRole.Waiter}
-        ];
-        candidates.forEach((cand, i) => {
-          const itemY = 40 + (RECRUIT_BTN_HEIGHT + RECRUIT_BTN_MARGIN) * i + RECRUIT_BTN_MARGIN;
-          if (clickY >= itemY && clickY <= itemY + RECRUIT_BTN_HEIGHT) {
-            this.hireEmployee(cand.type, cand.cost);
-          }
-        });
+        this.staffPanel.handleClick(clickX, clickY, this.activeRestaurant);
       } else if (this.activeTab === 'inventory') {
-        INGREDIENT_DEFINITIONS.forEach((ing, index) => {
-          const itemY = 40 + (INVENTORY_ITEM_HEIGHT + INVENTORY_ITEM_MARGIN) * index + INVENTORY_ITEM_MARGIN;
-
-          const btnX = panelX + INVENTORY_ITEM_MARGIN + 10;
-          const btnY = itemY + 35;
-          const btnW = FURNITURE_PANEL_WIDTH - 2 * INVENTORY_ITEM_MARGIN - 20;
-          const btnH = 25;
-
-          if (clickX >= btnX && clickX <= btnX + btnW &&
-            clickY >= btnY && clickY <= btnY + btnH) {
-
-            const buyAmount = 5;
-            const totalCost = ing.baseCost * buyAmount;
-
-            // Attempt purchase
-            if (this.activeRestaurant.buyIngredient(ing.id, buyAmount, totalCost)) {
-              console.log(`Bought ${buyAmount} ${ing.name}`);
-              // Play sound or visual feedback here
-            } else {
-              console.log("Not enough money for ingredients");
-            }
-          }
-        });
+        this.inventoryPanel.handleClick(clickX, clickY, this.activeRestaurant);
       }
       return;
     }
 
+    // World Interaction (Placing Furniture)
     if (this.selectedFurniture) {
       if (event.button === 2) { // Right click
         this.selectedFurniture = null;
@@ -753,62 +529,5 @@ export class InteriorView {
   }
 
   public hideUI(): void {
-    // Placeholder implementation
-  }
-
-  private hireEmployee(role: EmployeeRole, cost: number): void {
-    const player = GameState.getInstance().player;
-    if (player.money < cost) {
-      console.log("Not enough money to hire!");
-      return;
-    }
-
-    const spot = this.findFreeSpot();
-    if (!spot) {
-      console.log("No free space for new employee!");
-      return;
-    }
-
-    player.spendMoney(cost);
-    const name = role === EmployeeRole.Chef ? "Chef Luigi" : "Waiter Mario"; // Placeholder names
-    const employee = new Employee(name, role, 1, 100);
-    employee.gridX = spot.x;
-    employee.gridY = spot.y;
-
-    this.activeRestaurant.employees.push(employee);
-    console.log(`Hired ${name} at ${spot.x}, ${spot.y}`);
-  }
-
-  private findFreeSpot(): { x: number, y: number } | null {
-    // Try to find a random free spot first, or iterate
-    // Simple iteration for now to guarantee finding one if it exists
-    for (let y = 1; y < this.activeRestaurant.height - 1; y++) {
-      for (let x = 1; x < this.activeRestaurant.width - 1; x++) {
-        if (this.isSpotFree(x, y)) {
-          return {x, y};
-        }
-      }
-    }
-    return null;
-  }
-
-  private isSpotFree(x: number, y: number): boolean {
-    const tile = this.activeRestaurant.getTile(x, y);
-    if (!tile || tile.type === 'wall') return false;
-
-    // Check furniture
-    for (const item of this.activeRestaurant.furniture) {
-      if (x >= item.gridX && x < item.gridX + item.width &&
-        y >= item.gridY && y < item.gridY + item.height) {
-        return false;
-      }
-    }
-
-    // Check other employees
-    for (const emp of this.activeRestaurant.employees) {
-      if (emp.gridX === x && emp.gridY === y) return false;
-    }
-
-    return true;
   }
 }

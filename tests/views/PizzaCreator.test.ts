@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { PizzaCreator } from './PizzaCreator';
-import { Ingredient } from '../model/Ingredient';
-import { AssetManager } from '../systems/AssetManager';
-import { IngredientType } from '../model/enums';
+import { PizzaCreator } from '../../src/views/PizzaCreator';
+import { Ingredient } from '../../src/model/Ingredient';
+import { AssetManager } from '../../src/systems/AssetManager';
+import { IngredientType } from '../../src/model/enums';
 
 // Mock AssetManager
 const mockAssetManager = {
