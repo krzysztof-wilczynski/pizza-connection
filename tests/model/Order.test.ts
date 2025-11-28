@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Order } from './Order';
-import { Pizza } from './Pizza';
-import { Ingredient } from './Ingredient';
-import { IngredientType, OrderState, EmployeeRole, EmployeeState, CustomerState } from './enums';
-import { Restaurant } from './Restaurant';
-import { Employee } from './Employee';
-import { Customer } from './Customer';
-import { Furniture } from './Furniture';
+import { Order } from '../../src/model/Order';
+import { Pizza } from '../../src/model/Pizza';
+import { Ingredient } from '../../src/model/Ingredient';
+import { IngredientType, OrderState, EmployeeRole, EmployeeState, CustomerState } from '../../src/model/enums';
+import { Restaurant } from '../../src/model/Restaurant';
+import { Employee } from '../../src/model/Employee';
+import { Customer } from '../../src/model/Customer';
+import { Furniture } from '../../src/model/Furniture';
 
 describe('Order Lifecycle', () => {
   // Since Order is an interface, we verify the lifecycle flow managed by Restaurant and Employee

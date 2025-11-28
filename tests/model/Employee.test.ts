@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Employee } from './Employee';
-import { Restaurant } from './Restaurant';
-import { EmployeeRole, EmployeeState, OrderState } from './enums';
-import { Order } from './Order';
-import { Pizza } from './Pizza';
-import { Ingredient } from './Ingredient';
-import { IngredientType } from './enums';
-import { Furniture } from './Furniture';
-import { Customer } from './Customer';
-import { CustomerState } from './enums';
+import { Employee } from '../../src/model/Employee';
+import { Restaurant } from '../../src/model/Restaurant';
+import { EmployeeRole, EmployeeState, OrderState } from '../../src/model/enums';
+import { Order } from '../../src/model/Order';
+import { Pizza } from '../../src/model/Pizza';
+import { Ingredient } from '../../src/model/Ingredient';
+import { IngredientType } from '../../src/model/enums';
+import { Furniture } from '../../src/model/Furniture';
+import { Customer } from '../../src/model/Customer';
+import { CustomerState } from '../../src/model/enums';
 
 describe('Employee', () => {
   let restaurant: Restaurant;

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GameState } from './GameState';
-import { Restaurant } from './Restaurant';
-import { Ingredient } from './Ingredient';
+import { GameState } from '../../src/model/GameState';
+import { Restaurant } from '../../src/model/Restaurant';
+import { Ingredient } from '../../src/model/Ingredient';
 
 describe('GameState', () => {
   let gameState: GameState;

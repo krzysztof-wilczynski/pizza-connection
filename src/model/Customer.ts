@@ -17,7 +17,7 @@ export class Customer {
   // Review System Tracking
   private arrivalTime: number = 0; // Game time in minutes
   private waitingForFoodTime: number = 0; // Start of waiting
-  private hasReviewed: boolean = false;
+  public hasReviewed: boolean = false;
 
   constructor(id: string, x: number, y: number) {
     this.id = id;
@@ -72,7 +72,7 @@ export class Customer {
 
           // Price/Quality check
           if (this.order) {
-              const valueRatio = this.order.price / (this.order.price * 0.5 + 5); // Simplified value logic
+              const valueRatio = this.order.salePrice / (this.order.salePrice * 0.5 + 5); // Simplified value logic
               if (valueRatio < 1.0) {
                   rating += 1;
                   comments.push("Świetna cena!");

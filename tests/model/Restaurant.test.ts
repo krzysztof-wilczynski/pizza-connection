@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Restaurant } from './Restaurant';
-import { Pizza } from './Pizza';
-import { Employee } from './Employee';
-import { Ingredient } from './Ingredient';
-import { Furniture } from './Furniture';
-import { IngredientType } from './enums';
-import { GameState } from './GameState';
+import { Restaurant } from '../../src/model/Restaurant';
+import { Pizza } from '../../src/model/Pizza';
+import { Employee } from '../../src/model/Employee';
+import { Ingredient } from '../../src/model/Ingredient';
+import { Furniture } from '../../src/model/Furniture';
+import { IngredientType } from '../../src/model/enums';
+import { GameState } from '../../src/model/GameState';
 
 describe('Restaurant', () => {
   let restaurant: Restaurant;
