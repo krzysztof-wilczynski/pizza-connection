@@ -21,6 +21,10 @@ export class Player {
     }
   }
 
+  public setMoney(amount: number) {
+    this._money = amount;
+  }
+
   public spendMoney(amount: number): boolean {
     if (amount > 0 && this._money >= amount) {
       this._money -= amount;
