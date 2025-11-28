@@ -1,66 +1,57 @@
 
-from playwright.sync_api import sync_playwright
+import asyncio
+from playwright.async_api import async_playwright
 
-def verify_frontend():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+async def verify_inventory_icons():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(viewport={'width': 1280, 'height': 720})
+        page = await context.new_page()
+
         try:
-            # Go to the local dev server
-            page.goto("http://localhost:3000")
+            # 1. Open the game
+            await page.goto("http://localhost:3000")
 
             # Wait for canvas to load
-            page.wait_for_selector("canvas")
+            await page.wait_for_selector("canvas")
 
-            # We need to simulate interaction to open the inventory panel.
-            # Based on InteriorView.ts logic:
-            # Panel is on the right side. Tabs are at the top of the panel.
-            # Coordinates are approximate based on hardcoded values in InteriorView.ts
-            # Canvas size defaults to window size.
+            # Note: Since the game is canvas-based, we can't easily click UI elements via DOM.
+            # However, we can click blindly or attempt to click where the 'Pantry' (Inventory) tab should be.
+            # Layout from code:
+            # Side Panel Width = 300 (Right aligned)
+            # Master Tabs at Y = 50 (Top Bar Height)
+            # Tabs: Furniture (0), Staff (1), Inventory (2)
+            # Tab Width = 300 / 3 = 100
+            # Inventory Tab X = (Width - 300) + 200 + 50 (center)
+            # Inventory Tab Y = 50 + 20 (center)
 
-            # InteriorView.ts:
-            # TOP_BAR_HEIGHT = 50
-            # SIDE_PANEL_WIDTH = 300
-            # MASTER_TAB_HEIGHT = 40
-            # Inventory Tab is index 2 (0, 1, 2)
+            # Screen size 1280x720
+            # Panel X = 1280 - 300 = 980
+            # Inventory Tab X start = 980 + 200 = 1180
+            # Inventory Tab Center X = 1180 + 50 = 1230
+            # Inventory Tab Center Y = 50 + 20 = 70
 
-            # Get canvas size
-            viewport = page.viewport_size
-            width = viewport['width']
-            height = viewport['height']
+            # 2. Click on "Start Game" or equivalent if needed.
+            # Assuming auto-start or simple start.
+            # Let's wait a bit for assets to load
+            await asyncio.sleep(2)
 
-            panel_x = width - 300
-            # Inventory tab click (3rd tab)
-            # x between panel_x + 200 and panel_x + 300
-            # y between 50 and 90
+            # Click the Inventory Tab
+            await page.mouse.click(1230, 70)
 
-            # Click Inventory Tab
-            page.mouse.click(panel_x + 250, 70)
+            # Wait for tab switch animation/render
+            await asyncio.sleep(1)
 
-            # Wait a bit for render
-            page.wait_for_timeout(500)
+            # 3. Take Screenshot of the Panel area
+            # Panel Area: x=980, y=50, w=300, h=670
+            await page.screenshot(path="verification/inventory_panel.png", clip={'x': 980, 'y': 50, 'width': 300, 'height': 670})
 
-            # Now click "Buy" button for an ingredient
-            # InventoryPanel.ts renders items starting at y + 35 (header + margin)
-            # Item height 60.
-            # First item button is at btnX = width - 90, btnY = currentY + 15
-            # First item Y approx: 50 + 40 + 10 + 25 = 125
-            # Btn Y approx: 125 + 15 = 140
-            # Btn X approx: width - 90 + 40 (center)
-
-            page.mouse.click(width - 50, 140)
-
-            # Wait for floating text animation
-            page.wait_for_timeout(200)
-
-            # Take screenshot
-            page.screenshot(path="verification/verification.png")
-            print("Screenshot taken.")
+            print("Screenshot taken: verification/inventory_panel.png")
 
         except Exception as e:
             print(f"Error: {e}")
         finally:
-            browser.close()
+            await browser.close()
 
 if __name__ == "__main__":
-    verify_frontend()
+    asyncio.run(verify_inventory_icons())

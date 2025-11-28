@@ -71,7 +71,7 @@ export class InteriorView {
       this.selectedFurniture = furniture;
     });
     this.staffPanel = new StaffPanel();
-    this.inventoryPanel = new InventoryPanel();
+    this.inventoryPanel = new InventoryPanel(assetManager);
 
     this.pizzaCreator.onSave = (pizza) => {
       this.activeRestaurant.menu.push(pizza);
