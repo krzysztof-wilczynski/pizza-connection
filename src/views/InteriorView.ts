@@ -11,6 +11,8 @@ import {CustomerState, EmployeeRole, EmployeeState, OrderState} from '../model/e
 import {FurniturePanel} from './ui/FurniturePanel';
 import {StaffPanel} from './ui/StaffPanel';
 import {InventoryPanel} from './ui/InventoryPanel';
+import {ArchitecturePanel} from './ui/ArchitecturePanel';
+import {WallType, ZoneType} from '../model/enums';
 
 interface FloatingText {
   x: number;
@@ -42,7 +44,7 @@ export class InteriorView {
 
   private selectedFurniture: Furniture | null = null;
   private mousePosition = {x: 0, y: 0};
-  private activeTab: 'furniture' | 'staff' | 'inventory' = 'furniture';
+  private activeTab: 'furniture' | 'staff' | 'inventory' | 'architecture' = 'furniture';
 
   private floatingTexts: FloatingText[] = [];
 
@@ -50,6 +52,7 @@ export class InteriorView {
   private furniturePanel: FurniturePanel;
   private staffPanel: StaffPanel;
   private inventoryPanel: InventoryPanel;
+  private architecturePanel: ArchitecturePanel;
 
   // View Change Callback
   private changeViewCallback: ((newView: any) => void) | null = null;
@@ -72,6 +75,7 @@ export class InteriorView {
     });
     this.staffPanel = new StaffPanel();
     this.inventoryPanel = new InventoryPanel(assetManager);
+    this.architecturePanel = new ArchitecturePanel();
 
     this.pizzaCreator.onSave = (pizza) => {
       this.activeRestaurant.menu.push(pizza);
@@ -89,6 +93,7 @@ export class InteriorView {
 
   public hideUI(): void {
     this.selectedFurniture = null;
+    this.architecturePanel.activeTool = null;
   }
 
   public addFloatingText(x: number, y: number, text: string, color: string): void {
@@ -135,45 +140,7 @@ export class InteriorView {
     this.ctx.save();
     this.ctx.translate(interiorOffsetX, interiorOffsetY);
 
-    // Draw Walls (Background)
-    const wallCorner = this.assetManager.getAsset('interior_wall_corner');
-    const wallLeft = this.assetManager.getAsset('interior_wall_left');
-    const wallRight = this.assetManager.getAsset('interior_wall_right');
-
-    // Corner (0,0)
-    if (wallCorner) {
-      const screenPos = gridToScreen(0, 0);
-      this.ctx.drawImage(
-        wallCorner,
-        screenPos.x - wallCorner.naturalWidth / 2,
-        screenPos.y - wallCorner.naturalHeight + TILE_HEIGHT_HALF
-      );
-    }
-
-    // Left Walls (col=0, row>0)
-    if (wallLeft) {
-      for (let row = 1; row < this.activeRestaurant.height; row++) {
-        const screenPos = gridToScreen(0, row);
-        this.ctx.drawImage(
-          wallLeft,
-          screenPos.x - wallLeft.naturalWidth / 2,
-          screenPos.y - wallLeft.naturalHeight + TILE_HEIGHT_HALF
-        );
-      }
-    }
-
-    // Right Walls (row=0, col>0)
-    if (wallRight) {
-      for (let col = 1; col < this.activeRestaurant.width; col++) {
-        const screenPos = gridToScreen(col, 0);
-        this.ctx.drawImage(
-          wallRight,
-          screenPos.x - wallRight.naturalWidth / 2,
-          screenPos.y - wallRight.naturalHeight + TILE_HEIGHT_HALF
-        );
-      }
-    }
-
+    // Draw Floor & Zones
     for (let row = 0; row < this.activeRestaurant.height; row++) {
       for (let col = 0; col < this.activeRestaurant.width; col++) {
         const screenPos = gridToScreen(col, row);
@@ -182,8 +149,22 @@ export class InteriorView {
     }
 
     // Combined Rendering with Z-Sorting
-    const renderList: { type: 'furniture' | 'employee' | 'customer', obj: any, sortDepth: number }[] = [];
+    const renderList: { type: 'furniture' | 'employee' | 'customer' | 'wall', obj: any, sortDepth: number }[] = [];
     const zIndexOffset = 0.1;
+
+    // Add Walls (Iterate Grid)
+    for (let y = 0; y < this.activeRestaurant.height; y++) {
+      for (let x = 0; x < this.activeRestaurant.width; x++) {
+        const tile = this.activeRestaurant.getTile(x, y);
+        if (tile && tile.wallType !== WallType.None) {
+          renderList.push({
+            type: 'wall',
+            obj: { x, y, type: tile.wallType },
+            sortDepth: x + y
+          });
+        }
+      }
+    }
 
     // Add Furniture
     this.activeRestaurant.furniture.forEach(f => {
@@ -231,10 +212,14 @@ export class InteriorView {
       } else if (item.type === 'customer') {
         const c = item.obj as Customer;
         this.drawCustomer(c);
+      } else if (item.type === 'wall') {
+        const w = item.obj as { x: number, y: number, type: WallType };
+        this.drawWall(w.x, w.y, w.type);
       }
     });
 
     this.drawFurnitureGhost(interiorOffsetX, interiorOffsetY);
+    this.drawArchitectureGhost(interiorOffsetX, interiorOffsetY);
 
     this.ctx.restore();
     this.renderUI(this.ctx);
@@ -307,11 +292,12 @@ export class InteriorView {
     ctx.strokeRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
 
     // 5. Master Tabs
-    const tabWidth = SIDE_PANEL_WIDTH / 3;
+    const tabWidth = SIDE_PANEL_WIDTH / 4;
     const tabs = [
       {key: 'furniture', label: '🏠'},
       {key: 'staff', label: '👥'},
-      {key: 'inventory', label: '📦'}
+      {key: 'inventory', label: '📦'},
+      {key: 'architecture', label: '🏗️'}
     ];
 
     tabs.forEach((tab, index) => {
@@ -340,6 +326,8 @@ export class InteriorView {
       this.staffPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
     } else if (this.activeTab === 'inventory') {
       this.inventoryPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
+    } else if (this.activeTab === 'architecture') {
+      this.architecturePanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH);
     }
   }
 
@@ -625,15 +613,40 @@ export class InteriorView {
     }
   }
 
+  private drawWall(x: number, y: number, type: WallType): void {
+    // Determine wall asset based on position (HACK for now to simulate perspective)
+    // In a real system, walls might need specific directional assets
+    let assetName = 'interior_wall_corner';
+
+    // Check neighbors to decide generic direction (very simple logic)
+    // If we are at the edge, use edge walls
+    if (x === 0 && y > 0) assetName = 'interior_wall_left';
+    if (y === 0 && x > 0) assetName = 'interior_wall_right';
+
+    // Override for specific wall types if we had assets
+    // if (type === WallType.Brick) ...
+
+    const img = this.assetManager.getAsset(assetName);
+    const screenPos = gridToScreen(x, y);
+
+    if (img && img.naturalWidth > 0) {
+      this.ctx.drawImage(
+        img,
+        screenPos.x - img.naturalWidth / 2,
+        screenPos.y - img.naturalHeight + TILE_HEIGHT_HALF
+      );
+    } else {
+      // Fallback
+      this.ctx.fillStyle = type === WallType.Brick ? '#883333' : '#DDDDDD';
+      this.ctx.fillRect(screenPos.x - 10, screenPos.y - 40, 20, 40);
+    }
+  }
+
   private drawTile(x: number, y: number, gridX: number, gridY: number): void {
     const tile = this.activeRestaurant.getTile(gridX, gridY);
-    // Use mapped asset or fallback to 'interior_floor_wood' (which is the new default) or 'floor' (old legacy key)
-    // Note: The constructor now sets 'interior_floor_wood' as default.
-    // We map 'interior_floor_wood' -> 'interior_floor_wood'.
-    // Legacy 'floor' might be 'interior_floor_wood' in assets manifest.
-    const assetKey = tile?.floorAsset || 'interior_floor_wood';
 
-    // Check if asset exists, if not try 'floor' for legacy compatibility
+    // 1. Draw Floor
+    const assetKey = tile?.floorAsset || 'interior_floor_wood';
     let floor = this.assetManager.getAsset(assetKey);
     if (!floor) floor = this.assetManager.getAsset('floor');
 
@@ -651,6 +664,44 @@ export class InteriorView {
       this.ctx.strokeStyle = '#555';
       this.ctx.stroke();
     }
+
+    // 2. Zone Overlay (If in Architecture Mode)
+    if (this.activeTab === 'architecture' && this.architecturePanel.activeTool?.type === 'zone') {
+       this.drawZoneOverlay(x, y, tile?.zone);
+    }
+
+    // Also draw actual zones always if they are set?
+    // Usually only in edit mode, or always for visual clarity?
+    // Instructions say: "Jeśli włączony jest tryb edycji stref, rysuj..."
+  }
+
+  private drawZoneOverlay(screenX: number, screenY: number, zone: ZoneType | undefined): void {
+    if (zone === ZoneType.None || zone === undefined) return;
+
+    this.ctx.save();
+
+    // Map Zone to Color
+    let color = '';
+    switch (zone) {
+      case ZoneType.Kitchen: color = 'rgba(255, 0, 0, 0.3)'; break;
+      case ZoneType.Dining: color = 'rgba(0, 255, 0, 0.3)'; break;
+      case ZoneType.Storage: color = 'rgba(0, 0, 255, 0.3)'; break;
+      case ZoneType.Staff: color = 'rgba(255, 255, 0, 0.3)'; break;
+      default: return;
+    }
+
+    this.ctx.fillStyle = color;
+
+    // Draw Isometric Diamond
+    this.ctx.beginPath();
+    this.ctx.moveTo(screenX, screenY);
+    this.ctx.lineTo(screenX + TILE_WIDTH_HALF, screenY + TILE_HEIGHT_HALF);
+    this.ctx.lineTo(screenX, screenY + TILE_HEIGHT_HALF * 2);
+    this.ctx.lineTo(screenX - TILE_WIDTH_HALF, screenY + TILE_HEIGHT_HALF);
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    this.ctx.restore();
   }
 
   public handleMouseMove(event: MouseEvent): void {
@@ -714,12 +765,17 @@ export class InteriorView {
     if (clickX >= panelX && clickY >= TOP_BAR_HEIGHT) {
       // Check Master Tabs
       if (clickY <= TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT) {
-        const tabWidth = SIDE_PANEL_WIDTH / 3;
+        const tabWidth = SIDE_PANEL_WIDTH / 4; // Updated for 4 tabs
         const localX = clickX - panelX;
         const index = Math.floor(localX / tabWidth);
+
+        // Reset selections when switching tabs
+        this.selectedFurniture = null;
+
         if (index === 0) this.activeTab = 'furniture';
         if (index === 1) this.activeTab = 'staff';
         if (index === 2) this.activeTab = 'inventory';
+        if (index === 3) this.activeTab = 'architecture';
         return;
       }
 
@@ -730,7 +786,7 @@ export class InteriorView {
 
       if (this.activeTab === 'furniture') {
         const selected = this.furniturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
-        if (selected) this.selectedFurniture = { ...selected, rotation: 0 }; // Clone to allow rotation without mutating catalog
+        if (selected) this.selectedFurniture = { ...selected, rotation: 0 };
       } else if (this.activeTab === 'staff') {
         this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
       } else if (this.activeTab === 'inventory') {
@@ -738,6 +794,8 @@ export class InteriorView {
         if (cost && cost > 0) {
           this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${cost}`, "red");
         }
+      } else if (this.activeTab === 'architecture') {
+        this.architecturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
       }
       return; // Consumed by UI
     }
@@ -757,8 +815,8 @@ export class InteriorView {
 
     if (isOverUI) return;
 
-    // World Interaction
-    if (this.selectedFurniture) {
+    // World Interaction: Furniture Placement
+    if (this.activeTab === 'furniture' && this.selectedFurniture) {
       if (event.button === 2) { // PRAWY KLIK (ROTACJA)
         const currentRot = this.selectedFurniture.rotation || 0;
         const nextRot = (currentRot + 1) % 4; // Cykl: 0 -> 1 -> 2 -> 3 -> 0
@@ -798,6 +856,102 @@ export class InteriorView {
         }
       }
     }
+
+    // World Interaction: Architecture
+    if (this.activeTab === 'architecture' && this.architecturePanel.activeTool) {
+      if (event.button === 0) { // LEWY KLIK (BUDOWANIE)
+        const interiorOffsetX = this.ctx.canvas.width / 2;
+        const interiorOffsetY = this.ctx.canvas.height / 4;
+        const screenX = this.mousePosition.x - interiorOffsetX;
+        const screenY = this.mousePosition.y - interiorOffsetY;
+        const gridPos = screenToGrid(screenX, screenY);
+        const gridX = Math.floor(gridPos.x);
+        const gridY = Math.floor(gridPos.y);
+
+        // Check bounds
+        if (gridX < 0 || gridY < 0 || gridX >= this.activeRestaurant.width || gridY >= this.activeRestaurant.height) {
+          return;
+        }
+
+        const tool = this.architecturePanel.activeTool;
+        const player = GameState.getInstance().player;
+
+        if (player.money >= tool.cost) {
+           if (tool.type === 'wall') {
+             this.activeRestaurant.setWall(gridX, gridY, tool.value as WallType);
+           } else if (tool.type === 'zone') {
+             this.activeRestaurant.setZone(gridX, gridY, tool.value as ZoneType);
+           }
+
+           if (tool.cost > 0) {
+             player.spendMoney(tool.cost);
+             this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${tool.cost}`, "red");
+           }
+        } else {
+          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, "Brak kasy!", "red");
+        }
+      }
+    }
+  }
+
+  private drawArchitectureGhost(interiorOffsetX: number, interiorOffsetY: number): void {
+     if (this.activeTab !== 'architecture' || !this.architecturePanel.activeTool) return;
+
+    const screenX = this.mousePosition.x - interiorOffsetX;
+    const screenY = this.mousePosition.y - interiorOffsetY;
+    const gridPos = screenToGrid(screenX, screenY);
+    const gridX = Math.floor(gridPos.x);
+    const gridY = Math.floor(gridPos.y);
+
+    if (gridX < 0 || gridY < 0 || gridX >= this.activeRestaurant.width || gridY >= this.activeRestaurant.height) {
+      return;
+    }
+
+    const tool = this.architecturePanel.activeTool;
+    const screenTile = gridToScreen(gridX, gridY);
+
+    this.ctx.save();
+
+    // Ghost Logic
+    if (tool.type === 'zone') {
+       // Zone Ghost
+       const color = tool.color || 'white';
+       this.ctx.fillStyle = color.replace('0.3', '0.6'); // More opaque for ghost
+
+       this.ctx.beginPath();
+       this.ctx.moveTo(screenTile.x, screenTile.y);
+       this.ctx.lineTo(screenTile.x + TILE_WIDTH_HALF, screenTile.y + TILE_HEIGHT_HALF);
+       this.ctx.lineTo(screenTile.x, screenTile.y + TILE_HEIGHT_HALF * 2);
+       this.ctx.lineTo(screenTile.x - TILE_WIDTH_HALF, screenTile.y + TILE_HEIGHT_HALF);
+       this.ctx.closePath();
+       this.ctx.fill();
+    } else if (tool.type === 'wall') {
+       // Wall Ghost
+       this.ctx.globalAlpha = 0.5;
+       if (tool.value === WallType.None) {
+          // Remover (Red Cross on floor)
+          this.ctx.strokeStyle = 'red';
+          this.ctx.lineWidth = 3;
+          this.ctx.beginPath();
+          this.ctx.moveTo(screenTile.x - 10, screenTile.y + TILE_HEIGHT_HALF);
+          this.ctx.lineTo(screenTile.x + 10, screenTile.y + TILE_HEIGHT_HALF + 20);
+          this.ctx.moveTo(screenTile.x + 10, screenTile.y + TILE_HEIGHT_HALF);
+          this.ctx.lineTo(screenTile.x - 10, screenTile.y + TILE_HEIGHT_HALF + 20);
+          this.ctx.stroke();
+       } else {
+          // Wall Preview
+          const assetName = 'interior_wall_corner'; // Generic for ghost
+          const img = this.assetManager.getAsset(assetName);
+          if (img) {
+            this.ctx.drawImage(img, screenTile.x - img.naturalWidth/2, screenTile.y - img.naturalHeight + TILE_HEIGHT_HALF);
+          } else {
+             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+             this.ctx.fillRect(screenTile.x - 10, screenTile.y - 40, 20, 40);
+          }
+       }
+    }
+
+    this.ctx.restore();
   }
 
 }
