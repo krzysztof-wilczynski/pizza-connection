@@ -7,10 +7,10 @@ import {AssetManager} from '../systems/AssetManager';
 import {GameState} from '../model/GameState';
 import {Employee} from '../model/Employee';
 import {Customer} from '../model/Customer';
-import {EmployeeRole, EmployeeState, CustomerState, OrderState} from '../model/enums';
-import { FurniturePanel } from './ui/FurniturePanel';
-import { StaffPanel } from './ui/StaffPanel';
-import { InventoryPanel } from './ui/InventoryPanel';
+import {CustomerState, EmployeeRole, EmployeeState, OrderState} from '../model/enums';
+import {FurniturePanel} from './ui/FurniturePanel';
+import {StaffPanel} from './ui/StaffPanel';
+import {InventoryPanel} from './ui/InventoryPanel';
 
 interface FloatingText {
   x: number;
@@ -305,8 +305,7 @@ export class InteriorView {
     this.ctx.textAlign = 'center';
 
     this.floatingTexts.forEach(ft => {
-      const alpha = Math.max(0, ft.lifeTime / ft.maxLife);
-      this.ctx.globalAlpha = alpha;
+      this.ctx.globalAlpha = Math.max(0, ft.lifeTime / ft.maxLife);
 
       // Shadow/Outline effect
       this.ctx.fillStyle = 'black';
@@ -317,75 +316,6 @@ export class InteriorView {
     });
 
     this.ctx.restore();
-  }
-
-
-  private drawTempUI(): void {
-    // Creator Button
-    this.ctx.fillStyle = '#27ae60';
-    this.ctx.fillRect(BTN_CREATOR_RECT.x, BTN_CREATOR_RECT.y, BTN_CREATOR_RECT.w, BTN_CREATOR_RECT.h);
-    this.ctx.fillStyle = '#ecf0f1';
-    this.ctx.font = '20px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('Otwórz Kreator Pizzy', BTN_CREATOR_RECT.x + BTN_CREATOR_RECT.w/2, 40);
-
-    // Menu Button
-    this.ctx.fillStyle = '#8e44ad';
-    this.ctx.fillRect(BTN_MENU_RECT.x, BTN_MENU_RECT.y, BTN_MENU_RECT.w, BTN_MENU_RECT.h);
-    this.ctx.fillStyle = '#ecf0f1';
-    this.ctx.fillText('Menu', BTN_MENU_RECT.x + BTN_MENU_RECT.w/2, 40);
-
-    this.ctx.textAlign = 'left';
-
-    // Money HUD
-    const money = GameState.getInstance().player.money;
-    this.ctx.fillStyle = '#f1c40f'; // Gold color
-    this.ctx.font = 'bold 24px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText(`$${money.toLocaleString()}`, this.ctx.canvas.width / 2, 35);
-    this.ctx.textAlign = 'left';
-
-    this.drawBackButton();
-    this.drawTabButtons();
-
-    if (this.activeTab === 'furniture') {
-      this.furniturePanel.render(this.ctx);
-    } else if (this.activeTab === 'staff') {
-      this.staffPanel.render(this.ctx);
-    } else if (this.activeTab === 'inventory') {
-      this.inventoryPanel.render(this.ctx, this.activeRestaurant);
-    }
-  }
-
-  private drawTabButtons(): void {
-    const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
-
-    // Background for tabs
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    this.ctx.fillRect(panelX, 0, FURNITURE_PANEL_WIDTH, 40);
-
-    const tabWidth = FURNITURE_PANEL_WIDTH / 3;
-
-    // Furniture Tab
-    this.ctx.fillStyle = this.activeTab === 'furniture' ? '#666' : '#444';
-    this.ctx.fillRect(panelX, 0, tabWidth, 40);
-    this.ctx.fillStyle = '#fff';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.font = '12px Arial';
-    this.ctx.fillText('Meble', panelX + tabWidth / 2, 20);
-
-    // Staff Tab
-    this.ctx.fillStyle = this.activeTab === 'staff' ? '#666' : '#444';
-    this.ctx.fillRect(panelX + tabWidth, 0, tabWidth, 40);
-    this.ctx.fillStyle = '#fff';
-    this.ctx.fillText('Ludzie', panelX + tabWidth * 1.5, 20);
-
-    // Inventory Tab
-    this.ctx.fillStyle = this.activeTab === 'inventory' ? '#666' : '#444';
-    this.ctx.fillRect(panelX + tabWidth * 2, 0, tabWidth, 40);
-    this.ctx.fillStyle = '#fff';
-    this.ctx.fillText('Spiżarnia', panelX + tabWidth * 2.5, 20);
   }
 
   private drawFurnitureGhost(interiorOffsetX: number, interiorOffsetY: number): void {
