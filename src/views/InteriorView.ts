@@ -194,6 +194,45 @@ export class InteriorView {
     this.ctx.save();
     this.ctx.translate(interiorOffsetX, interiorOffsetY);
 
+    // Draw Walls (Background)
+    const wallCorner = this.assetManager.getAsset('interior_wall_corner');
+    const wallLeft = this.assetManager.getAsset('interior_wall_left');
+    const wallRight = this.assetManager.getAsset('interior_wall_right');
+
+    // Corner (0,0)
+    if (wallCorner) {
+      const screenPos = gridToScreen(0, 0);
+      this.ctx.drawImage(
+        wallCorner,
+        screenPos.x - wallCorner.naturalWidth / 2,
+        screenPos.y - wallCorner.naturalHeight + TILE_HEIGHT_HALF
+      );
+    }
+
+    // Left Walls (col=0, row>0)
+    if (wallLeft) {
+      for (let row = 1; row < 10; row++) {
+        const screenPos = gridToScreen(0, row);
+        this.ctx.drawImage(
+          wallLeft,
+          screenPos.x - wallLeft.naturalWidth / 2,
+          screenPos.y - wallLeft.naturalHeight + TILE_HEIGHT_HALF
+        );
+      }
+    }
+
+    // Right Walls (row=0, col>0)
+    if (wallRight) {
+      for (let col = 1; col < 10; col++) {
+        const screenPos = gridToScreen(col, 0);
+        this.ctx.drawImage(
+          wallRight,
+          screenPos.x - wallRight.naturalWidth / 2,
+          screenPos.y - wallRight.naturalHeight + TILE_HEIGHT_HALF
+        );
+      }
+    }
+
     for (let row = 0; row < 10; row++) {
       for (let col = 0; col < 10; col++) {
         const screenPos = gridToScreen(col, row);
