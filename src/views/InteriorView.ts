@@ -100,6 +100,7 @@ export class InteriorView {
     this.tabStaff = document.getElementById('tab-staff');
     this.tabInventory = document.getElementById('tab-inventory');
 
+    // Content containers for old panels (kept for Staff/Inventory for now)
     this.contentFurniture = document.getElementById('furniture-content');
     this.contentStaff = document.getElementById('staff-content');
     this.contentInventory = document.getElementById('inventory-content');
@@ -121,7 +122,7 @@ export class InteriorView {
           this.menuManager.open();
       };
 
-      // Tabs
+      // Tabs - DOM Based for top buttons if they exist
       if (this.tabFurniture) this.tabFurniture.onclick = () => this.switchTab('furniture');
       if (this.tabStaff) this.tabStaff.onclick = () => this.switchTab('staff');
       if (this.tabInventory) this.tabInventory.onclick = () => this.switchTab('inventory');
@@ -137,12 +138,12 @@ export class InteriorView {
       if (this.tabInventory) this.tabInventory.classList.toggle('active', tab === 'inventory');
 
       // Update Content Visibility
-      if (this.contentFurniture) this.contentFurniture.style.display = tab === 'furniture' ? 'block' : 'none';
+      // Furniture is now Canvas-based, so we hide the DOM content if it exists
+      if (this.contentFurniture) this.contentFurniture.style.display = 'none';
       if (this.contentStaff) this.contentStaff.style.display = tab === 'staff' ? 'block' : 'none';
       if (this.contentInventory) this.contentInventory.style.display = tab === 'inventory' ? 'block' : 'none';
 
-      // Update Panel Contents
-      if (tab === 'furniture') this.furniturePanel.updateHTML();
+      // Update Panel Contents (Legacy)
       if (tab === 'staff') this.staffPanel.updateHTML(this.activeRestaurant);
       if (tab === 'inventory') this.inventoryPanel.updateHTML(this.activeRestaurant);
   }
@@ -294,6 +295,15 @@ export class InteriorView {
     // Canvas UI Overlays that are "part of the scene" (like Creator)
     this.pizzaCreator.render(this.ctx);
     this.menuManager.render(this.ctx);
+
+    // Render Furniture Panel if active
+    if (this.activeTab === 'furniture') {
+        // Render on the right side
+        const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
+        const panelY = 0; // Full height
+        const panelHeight = this.ctx.canvas.height;
+        this.furniturePanel.render(this.ctx, panelX, panelY, FURNITURE_PANEL_WIDTH, panelHeight);
+    }
 
     // Draw Floating Texts (Topmost Layer)
     this.drawFloatingTexts();
@@ -533,6 +543,19 @@ export class InteriorView {
     if (this.pizzaCreator.active) {
       this.pizzaCreator.handleMouseClick(event);
       return;
+    }
+
+    // Check Furniture Panel Interaction
+    if (this.activeTab === 'furniture') {
+        const panelX = this.ctx.canvas.width - FURNITURE_PANEL_WIDTH;
+        if (clickX >= panelX) {
+            // Click inside panel
+            const selected = this.furniturePanel.handleClick(clickX - panelX, clickY, FURNITURE_PANEL_WIDTH);
+            if (selected) {
+                this.selectedFurniture = selected;
+            }
+            return; // Don't propagate click to world if clicked on panel
+        }
     }
 
     // World Interaction (Placing Furniture)
