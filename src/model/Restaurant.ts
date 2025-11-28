@@ -6,9 +6,11 @@ import { Customer } from './Customer';
 import { CustomerState, OrderState } from './enums';
 import { Order } from './Order';
 import { GameState } from './GameState';
+import { ReputationSystem } from './ReputationSystem';
 
 export class Restaurant {
   public id: string;
+  public reputationSystem: ReputationSystem;
   public inventory: Map<string, number> = new Map(); // Key is ingredient ID
   public menu: Pizza[] = [];
   public employees: Employee[] = [];
@@ -21,17 +23,38 @@ export class Restaurant {
   public width: number = 10;
   public height: number = 10;
 
+  public appeal: number = 0; // Decoration appeal bonus
+
   constructor() {
     this.id = uuidv4();
+    this.reputationSystem = new ReputationSystem();
   }
 
   public update(deltaTime: number) {
-    // Spawner
-    this.spawnTimer += deltaTime;
-    if (this.spawnTimer > 5000) { // Every 5 seconds
-      this.spawnTimer = 0;
-      this.trySpawnCustomer();
+    // Check if shop is open before spawning
+    const timeManager = GameState.getInstance().timeManager;
+
+    // Spawner Logic modified by Reputation and Time
+    if (timeManager.isShopOpen()) {
+      this.spawnTimer += deltaTime;
+
+      // Base spawn time 5000ms.
+      // Higher rating = lower spawn time (more frequent).
+      // Rating 1: 5000 / 0.5 = 10000ms
+      // Rating 5: 5000 / 1.5 = 3333ms
+      const ratingFactor = 0.5 + (this.reputationSystem.averageRating - 1) * 0.25;
+      // 1 star -> 0.5 factor
+      // 3 stars -> 1.0 factor
+      // 5 stars -> 1.5 factor
+
+      const adjustedSpawnTime = 5000 / ratingFactor;
+
+      if (this.spawnTimer > adjustedSpawnTime) {
+        this.spawnTimer = 0;
+        this.trySpawnCustomer();
+      }
     }
+
 
     // Update Employees
     this.employees.forEach(employee => {
@@ -134,8 +157,10 @@ export class Restaurant {
         customer.order = randomPizza; 
         console.log(`Customer ${customer.id} ordered ${randomPizza.name}`);
         customer.state = CustomerState.WaitingForFood;
+        customer.startWaitingForFood();
       } else {
         customer.state = CustomerState.Leaving;
+        customer.generateReview(this, false); // No menu items = bad review
       }
     } else if (customer.state === CustomerState.Eating) {
       customer.eatingTimer -= dt;
@@ -144,9 +169,17 @@ export class Restaurant {
             GameState.getInstance().player.addMoney(customer.order.price);
         }
         customer.state = CustomerState.Leaving;
+        customer.generateReview(this, true); // Finished eating = review
         customer.targetFurnitureId = null; 
       }
     } else if (customer.state === CustomerState.Leaving) {
+      // Ensure review is generated if they are leaving for other reasons (e.g. timeout)
+      // Note: In current logic, leaving usually comes from Eating or NoChair/NoMenu.
+      // But if we add "Waiting too long" logic later, this ensures it's covered.
+      if (!customer.hasReviewed) {
+          customer.generateReview(this, false);
+      }
+
       const targetX = 0; 
       const targetY = 0;
       const dx = targetX - customer.gridX;
