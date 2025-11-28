@@ -41,90 +41,90 @@ export class Customer {
   }
 
   public generateReview(restaurant: Restaurant, success: boolean): void {
-      if (this.hasReviewed) return;
-      this.hasReviewed = true;
+    if (this.hasReviewed) return;
+    this.hasReviewed = true;
 
-      const tm = GameState.getInstance().timeManager;
-      const leaveTime = tm.day * 24 * 60 + tm.hour * 60 + tm.minute;
+    const tm = GameState.getInstance().timeManager;
+    const leaveTime = tm.day * 24 * 60 + tm.hour * 60 + tm.minute;
 
-      let rating = 3;
-      let comments: string[] = [];
-      let shortReaction = ""; // For bubble
+    let rating = 3;
+    let comments: string[] = [];
+    let shortReaction = ""; // For bubble
 
-      if (!success) {
-          rating = 1;
-          comments.push("Wyszedłem głodny!");
-          shortReaction = "Wyszedłem głodny!";
-      } else {
-          // Success case
-          rating = 4; // Base positive
-          comments.push("Dobra pizza.");
-          shortReaction = "Dobra pizza.";
+    if (!success) {
+      rating = 1;
+      comments.push("Wyszedłem głodny!");
+      shortReaction = "Wyszedłem głodny!";
+    } else {
+      // Success case
+      rating = 4; // Base positive
+      comments.push("Dobra pizza.");
+      shortReaction = "Dobra pizza.";
 
-          // Wait time check
-          if (this.waitingForFoodTime > 0) {
-             const waitEnd = leaveTime;
-             const waitDuration = waitEnd - this.waitingForFoodTime;
+      // Wait time check
+      if (this.waitingForFoodTime > 0) {
+        const waitEnd = leaveTime;
+        const waitDuration = waitEnd - this.waitingForFoodTime;
 
-             if (waitDuration > 30) {
-                 rating -= 1;
-                 comments.push("Czekałem wieki!");
-                 shortReaction = "Za długo...";
-             } else {
-                 rating += 1;
-                 comments.push("Szybka obsługa.");
-                 shortReaction = "Szybko!";
-             }
-          }
-
-          // Price/Quality check
-          if (this.order) {
-              const valueRatio = this.order.salePrice / (this.order.salePrice * 0.5 + 5); // Simplified value logic
-              if (valueRatio < 1.0) {
-                  rating += 1;
-                  comments.push("Świetna cena!");
-                  shortReaction = "Tanio!";
-              } else if (valueRatio > 2.0) {
-                  rating -= 1;
-                  comments.push("Drogo.");
-                  shortReaction = "Drożyzna!";
-              }
-          }
-
-          // Decoration appeal
-          if (restaurant.appeal > 10) {
-              rating += 1;
-              comments.push("Ładne wnętrze.");
-              // Don't necessarily override shortReaction here unless it's the main point
-          }
+        if (waitDuration > 30) {
+          rating -= 1;
+          comments.push("Czekałem wieki!");
+          shortReaction = "Za długo...";
+        } else {
+          rating += 1;
+          comments.push("Szybka obsługa.");
+          shortReaction = "Szybko!";
+        }
       }
 
-      // Clamp rating
-      rating = Math.max(1, Math.min(5, rating));
+      // Price/Quality check
+      if (this.order) {
+        const valueRatio = this.order.salePrice / (this.order.salePrice * 0.5 + 5); // Simplified value logic
+        if (valueRatio < 1.0) {
+          rating += 1;
+          comments.push("Świetna cena!");
+          shortReaction = "Tanio!";
+        } else if (valueRatio > 2.0) {
+          rating -= 1;
+          comments.push("Drogo.");
+          shortReaction = "Drożyzna!";
+        }
+      }
 
-      const fullComment = comments.join(" ");
+      // Decoration appeal
+      if (restaurant.appeal > 10) {
+        rating += 1;
+        comments.push("Ładne wnętrze.");
+        // Don't necessarily override shortReaction here unless it's the main point
+      }
+    }
 
-      // 1. System Notification
-      NotificationManager.getInstance().log(
-          `Nowa opinia: ${rating}/5 - "${fullComment}"`,
-          rating >= 3 ? 'success' : 'error'
-      );
+    // Clamp rating
+    rating = Math.max(1, Math.min(5, rating));
 
-      // 2. Add to Reputation System
-      restaurant.reputationSystem.addReview({
-          rating: rating,
-          comment: fullComment,
-          timestamp: tm.getTimeString()
-      });
+    const fullComment = comments.join(" ");
 
-      // 3. Trigger Visual Bubble
-      this.bubbleText = shortReaction;
-      this.bubbleTimer = 3.0; // 3 seconds
-      this.bubbleColor = rating >= 3 ? '#2ecc71' : '#e74c3c';
+    // 1. System Notification
+    NotificationManager.getInstance().log(
+      `Nowa opinia: ${rating}/5 - "${fullComment}"`,
+      rating >= 3 ? 'success' : 'error'
+    );
+
+    // 2. Add to Reputation System
+    restaurant.reputationSystem.addReview({
+      rating: rating,
+      comment: fullComment,
+      timestamp: tm.getTimeString()
+    });
+
+    // 3. Trigger Visual Bubble
+    this.bubbleText = shortReaction;
+    this.bubbleTimer = 3.0; // 3 seconds
+    this.bubbleColor = rating >= 3 ? '#2ecc71' : '#e74c3c';
   }
 
   public startWaitingForFood(): void {
-      const tm = GameState.getInstance().timeManager;
-      this.waitingForFoodTime = tm.day * 24 * 60 + tm.hour * 60 + tm.minute;
+    const tm = GameState.getInstance().timeManager;
+    this.waitingForFoodTime = tm.day * 24 * 60 + tm.hour * 60 + tm.minute;
   }
 }
