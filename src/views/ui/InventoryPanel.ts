@@ -1,12 +1,16 @@
 import { INGREDIENT_DEFINITIONS } from '../../data/ingredientDefinitions';
 import { GameState } from '../../model/GameState';
 import { Restaurant } from '../../model/Restaurant';
+import { AssetManager } from '../../systems/AssetManager';
 
 export class InventoryPanel {
   private scrollY: number = 0;
   private readonly ITEM_HEIGHT = 60;
+  private assetManager: AssetManager;
 
-  constructor() {}
+  constructor(assetManager: AssetManager) {
+    this.assetManager = assetManager;
+  }
 
   public handleWheel(deltaY: number): void {
       this.scrollY += deltaY;
@@ -41,22 +45,27 @@ export class InventoryPanel {
             return;
         }
 
-        const colors: Record<string, string> = {
-            'tomato_sauce': '#e74c3c',
-            'cheese': '#f1c40f',
-            'pepperoni': '#c0392b',
-            'dough': '#f5deb3'
-        };
-
         // Item Background
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.fillRect(x + 5, currentY, width - 10, this.ITEM_HEIGHT);
 
-        // Icon
-        ctx.fillStyle = colors[ing.id] || '#fff';
-        ctx.beginPath();
-        ctx.arc(x + 30, currentY + 30, 15, 0, Math.PI * 2);
-        ctx.fill();
+        // Icon Rendering
+        const img = this.assetManager.getAsset(ing.assetKey);
+        const iconX = x + 10;
+        const iconY = currentY + 10;
+        const iconSize = 40;
+
+        if (img && img.naturalWidth > 0) {
+            ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+        } else {
+            // Fallback
+            ctx.fillStyle = '#888';
+            ctx.fillRect(iconX, iconY, iconSize, iconSize);
+            ctx.fillStyle = '#FFF';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('?', iconX + iconSize / 2, iconY + iconSize / 2 + 3);
+        }
 
         // Text
         ctx.fillStyle = '#FFF';
