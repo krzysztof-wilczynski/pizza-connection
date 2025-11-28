@@ -183,6 +183,7 @@ export class InteriorView {
 
     // Combined Rendering with Z-Sorting
     const renderList: { type: 'furniture' | 'employee' | 'customer', obj: any, sortDepth: number }[] = [];
+    const zIndexOffset = 0.1;
 
     // Add Furniture
     this.activeRestaurant.furniture.forEach(f => {
@@ -198,7 +199,7 @@ export class InteriorView {
       renderList.push({
         type: 'employee',
         obj: e,
-        sortDepth: e.gridX + e.gridY
+        sortDepth: e.gridX + e.gridY + zIndexOffset
       });
     });
 
@@ -207,7 +208,7 @@ export class InteriorView {
       renderList.push({
         type: 'customer',
         obj: c,
-        sortDepth: c.gridX + c.gridY
+        sortDepth: c.gridX + c.gridY + zIndexOffset
       });
     });
 

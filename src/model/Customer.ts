@@ -27,7 +27,7 @@ export class Customer {
     this.targetFurnitureId = null;
     this.order = null;
     this.eatingTimer = 0;
-    this.assetKey = 'customer';
+    this.assetKey = 'people_customer';
 
     // Capture arrival time
     const tm = GameState.getInstance().timeManager;

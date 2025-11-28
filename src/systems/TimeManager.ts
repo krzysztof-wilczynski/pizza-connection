@@ -8,8 +8,8 @@ export class TimeManager {
 
   // Time state
   public day: number = 1;
-  public hour: number = 8; // Start at 8:00 AM
-  public minute: number = 0;
+  public hour: number = 9; // Start at 8:00 AM
+  public minute: number = 45;
   private timeAccumulator: number = 0;
 
   private constructor() {}
