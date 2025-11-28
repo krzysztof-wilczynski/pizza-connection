@@ -12,6 +12,15 @@ import { FurniturePanel } from './ui/FurniturePanel';
 import { StaffPanel } from './ui/StaffPanel';
 import { InventoryPanel } from './ui/InventoryPanel';
 
+interface FloatingText {
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  lifeTime: number;
+  maxLife: number;
+}
+
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 50;
 const BACK_BUTTON_MARGIN = 20;
@@ -32,6 +41,8 @@ export class InteriorView {
   private selectedFurniture: Furniture | null = null;
   private mousePosition = {x: 0, y: 0};
   private activeTab: 'furniture' | 'staff' | 'inventory' = 'furniture';
+
+  private floatingTexts: FloatingText[] = [];
 
   // Sub-panels
   private furniturePanel: FurniturePanel;
@@ -61,8 +72,30 @@ export class InteriorView {
     };
   }
 
+  public addFloatingText(x: number, y: number, text: string, color: string): void {
+    this.floatingTexts.push({
+      x,
+      y,
+      text,
+      color,
+      lifeTime: 2.0, // 2 seconds
+      maxLife: 2.0
+    });
+  }
+
   public update(deltaTime: number): void {
     this.activeRestaurant.update(deltaTime);
+
+    // Update Floating Texts
+    const speed = 50; // pixels per second
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatingTexts[i];
+      ft.lifeTime -= deltaTime;
+      ft.y -= speed * deltaTime;
+      if (ft.lifeTime <= 0) {
+        this.floatingTexts.splice(i, 1);
+      }
+    }
   }
 
   public render(): void {
@@ -137,6 +170,29 @@ export class InteriorView {
     this.drawTempUI();
     this.pizzaCreator.render(this.ctx);
     this.menuManager.render(this.ctx);
+
+    // Draw Floating Texts (Topmost Layer)
+    this.drawFloatingTexts();
+  }
+
+  private drawFloatingTexts(): void {
+    this.ctx.save();
+    this.ctx.font = 'bold 20px Arial';
+    this.ctx.textAlign = 'center';
+
+    this.floatingTexts.forEach(ft => {
+      const alpha = Math.max(0, ft.lifeTime / ft.maxLife);
+      this.ctx.globalAlpha = alpha;
+
+      // Shadow/Outline effect
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
+
+      this.ctx.fillStyle = ft.color;
+      this.ctx.fillText(ft.text, ft.x, ft.y);
+    });
+
+    this.ctx.restore();
   }
 
 
@@ -520,6 +576,7 @@ export class InteriorView {
         if (success) {
           player.spendMoney(this.selectedFurniture.price);
           console.log("Cha-ching!");
+          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${this.selectedFurniture.price}`, "red");
           this.selectedFurniture = null;
         }
       } else {
