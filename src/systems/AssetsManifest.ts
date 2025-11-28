@@ -48,6 +48,7 @@ export const ASSETS_MANIFEST = {
 
   // --- FURNITURE: SEATING ---
   'furniture_seating_chair_simple': '/assets/furniture/seating/chair_simple.svg',
+  'furniture_seating_chair_simple_back': '/assets/furniture/seating/chair_simple_back.svg',
   'furniture_seating_chair_plastic': '/assets/furniture/seating/chair_plastic.svg',
   'furniture_seating_chair_leather': '/assets/furniture/seating/chair_leather.svg',
   'furniture_seating_booth_corner': '/assets/furniture/seating/booth_corner.svg',

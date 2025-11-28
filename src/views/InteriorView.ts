@@ -513,18 +513,58 @@ export class InteriorView {
   }
 
   private drawFurniture(x: number, y: number, furniture: Furniture, isValid: boolean = true): void {
-    const img = this.assetManager.getAsset(furniture.assetKey);
+    let assetKey = furniture.assetKey;
+    const rotation = furniture.rotation || 0;
+
+    // Logika 4 kierunków:
+    // 0: SE (Przód, Prawo)
+    // 1: SW (Przód, Lewo - Flip)
+    // 2: NW (Tył, Prawo)
+    // 3: NE (Tył, Lewo - Flip)
+
+    const isBackSide = rotation >= 2;
+    const isFlipped = rotation % 2 !== 0;
+
+    // Jeśli mebel jest obrócony tyłem (2 lub 3), próbujemy użyć assetu "_back"
+    if (isBackSide) {
+      const backKey = `${assetKey}_back`;
+      // Sprawdź czy asset istnieje w managerze (wymaga rzutowania na string, bo TS pilnuje kluczy)
+      if (this.assetManager.getAsset(backKey)) {
+        assetKey = backKey;
+      }
+    }
+
+    const img = this.assetManager.getAsset(assetKey);
     const screenPos = gridToScreen(x, y);
 
     if (img && img.naturalWidth > 0) {
+      this.ctx.save();
       this.ctx.globalAlpha = isValid ? 1.0 : 0.5;
+
       const drawX = screenPos.x - img.naturalWidth / 2;
       const drawY = screenPos.y + TILE_HEIGHT_HALF * 2 - img.naturalHeight;
-      this.ctx.drawImage(img, drawX, drawY);
-      this.ctx.globalAlpha = 1.0;
+
+      if (isFlipped) {
+        // Odbicie lustrzane dla rotacji 1 i 3
+        const centerX = drawX + img.naturalWidth / 2;
+        this.ctx.translate(centerX, drawY);
+        this.ctx.scale(-1, 1);
+        this.ctx.drawImage(img, -img.naturalWidth / 2, 0);
+      } else {
+        // Normalne rysowanie dla 0 i 2
+        this.ctx.drawImage(img, drawX, drawY);
+      }
+
+      this.ctx.restore();
     } else {
+      // Fallback (gdy brak grafiki)
+      this.ctx.save();
       this.ctx.globalAlpha = isValid ? 1.0 : 0.5;
       this.ctx.fillStyle = isValid ? furniture.color : 'red';
+
+      // Przyciemnij tył w fallbacku
+      if (isBackSide) this.ctx.filter = 'brightness(0.7)';
+
       for (let row = 0; row < furniture.height; row++) {
         for (let col = 0; col < furniture.width; col++) {
           const tPos = gridToScreen(x + col, y + row);
@@ -537,11 +577,9 @@ export class InteriorView {
           this.ctx.fill();
         }
       }
-      this.ctx.globalAlpha = 1.0;
+      this.ctx.restore();
     }
-  }
-
-  private drawTile(x: number, y: number): void {
+  }  private drawTile(x: number, y: number): void {
     const floor = this.assetManager.getAsset('floor');
     if (floor && floor.naturalWidth > 0) {
       this.ctx.drawImage(floor, x - floor.naturalWidth / 2, y);
@@ -636,7 +674,7 @@ export class InteriorView {
 
       if (this.activeTab === 'furniture') {
         const selected = this.furniturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
-        if (selected) this.selectedFurniture = { ...selected }; // Clone to allow rotation without mutating catalog
+        if (selected) this.selectedFurniture = { ...selected, rotation: 0 }; // Clone to allow rotation without mutating catalog
       } else if (this.activeTab === 'staff') {
         this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
       } else if (this.activeTab === 'inventory') {
@@ -653,31 +691,34 @@ export class InteriorView {
   public handleMouseDown(event: MouseEvent): void {
     if (this.pizzaCreator.active) return;
 
-    // Check if UI blocked it (e.g., clicked on panel)
+    // UI Blocking
     const width = this.ctx.canvas.width;
     const height = this.ctx.canvas.height;
-
-    // Simple UI bounds check (Top Bar & Side Panel) to prevent world interaction through UI
-    // Note: detailed button handling is in 'click', but we must block 'mousedown' world logic
     const panelX = width - SIDE_PANEL_WIDTH;
     const clickX = event.clientX - this.ctx.canvas.getBoundingClientRect().left;
     const clickY = event.clientY - this.ctx.canvas.getBoundingClientRect().top;
-
     const isOverUI = (clickY < TOP_BAR_HEIGHT) || (clickX >= panelX && clickY >= TOP_BAR_HEIGHT);
 
     if (isOverUI) return;
 
-    // World Interaction (Placing/Rotating Furniture)
+    // World Interaction
     if (this.selectedFurniture) {
-      if (event.button === 2) { // Right click (Rotate)
-        // Swap dimensions
+      if (event.button === 2) { // PRAWY KLIK (ROTACJA)
+        const currentRot = this.selectedFurniture.rotation || 0;
+        const nextRot = (currentRot + 1) % 4; // Cykl: 0 -> 1 -> 2 -> 3 -> 0
+        this.selectedFurniture.rotation = nextRot;
+
+        // Zamieniamy wymiary ZAWSZE przy każdej zmianie o 90 stopni
+        // Ponieważ logicznie siatka zawsze obraca się o 90 względem poprzedniego stanu
         const temp = this.selectedFurniture.width;
         this.selectedFurniture.width = this.selectedFurniture.height;
         this.selectedFurniture.height = temp;
+
+        console.log(`Rotacja: ${nextRot} (${this.selectedFurniture.width}x${this.selectedFurniture.height})`);
         return;
       }
 
-      if (event.button === 0) { // Left click (Place)
+      if (event.button === 0) { // LEWY KLIK (STAWIANIE)
         const interiorOffsetX = this.ctx.canvas.width / 2;
         const interiorOffsetY = this.ctx.canvas.height / 4;
         const screenX = this.mousePosition.x - interiorOffsetX;
@@ -688,17 +729,17 @@ export class InteriorView {
 
         const player = GameState.getInstance().player;
         if (player.money >= this.selectedFurniture.price) {
-          const success = this.activeRestaurant.addFurniture(this.selectedFurniture, gridX, gridY);
+          // Klonujemy ponownie przy stawianiu, aby "duch" w ręce zachował swoją rotację
+          const furnitureToPlace = { ...this.selectedFurniture };
+
+          const success = this.activeRestaurant.addFurniture(furnitureToPlace, gridX, gridY);
           if (success) {
             player.spendMoney(this.selectedFurniture.price);
-            console.log("Cha-ching!");
             this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${this.selectedFurniture.price}`, "red");
-            this.selectedFurniture = null;
           }
         } else {
-          console.log("Not enough money");
+          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, "Brak kasy!", "red");
         }
       }
     }
-  }
-}
+  }}
