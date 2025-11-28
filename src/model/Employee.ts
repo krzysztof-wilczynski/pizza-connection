@@ -10,6 +10,7 @@ export class Employee {
   public currentOrder: Order | null = null;
   public targetX: number = -1;
   public targetY: number = -1;
+  public blockedReason: string | null = null;
 
   constructor(
     public name: string,
@@ -42,9 +43,12 @@ export class Employee {
         // 2. Supply Chain Check (Nowa logika!)
         if (!restaurant.hasIngredientsFor(pendingOrder.pizza)) {
             // Cannot cook, ignore this order or wait
-            // TODO: Add visual indicator "No Ingredients"
+            this.blockedReason = 'Brak składników!';
             return; 
         }
+
+        // Reset reason if we have ingredients
+        this.blockedReason = null;
 
         // 3. Find Available Oven
         const ovens = restaurant.furniture.filter(f => f.type === 'kitchen');
@@ -68,6 +72,9 @@ export class Employee {
           this.targetX = availableOven.gridX;
           this.targetY = availableOven.gridY;
         }
+      } else {
+        // No pending orders
+        this.blockedReason = null;
       }
     } else if (this.state === EmployeeState.Walking) {
       this.moveTowardsTarget(SPEED);
