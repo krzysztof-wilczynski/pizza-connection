@@ -23,10 +23,10 @@ interface FloatingText {
 
 // Layout Constants
 const UI_LAYOUT = {
-    BTN_KREATOR: { x: 10, y: 10, w: 150, h: 30 },
-    BTN_MENU: { x: 170, y: 10, w: 100, h: 30 },
-    BTN_MIASTO: { right: 10, y: 10, w: 140, h: 30 }, // 'right' oznacza offset od prawej krawędzi
-    HUD_STATS: { right: 170, y: 32 } // Tekst statystyk
+  BTN_KREATOR: {x: 10, y: 10, w: 150, h: 30},
+  BTN_MENU: {x: 170, y: 10, w: 100, h: 30},
+  BTN_MIASTO: {right: 10, y: 10, w: 140, h: 30}, // 'right' oznacza offset od prawej krawędzi
+  HUD_STATS: {right: 170, y: 32} // Tekst statystyk
 };
 
 const TOP_BAR_HEIGHT = 50;
@@ -68,7 +68,7 @@ export class InteriorView {
 
     // Initialize Panels
     this.furniturePanel = new FurniturePanel(assetManager, (furniture) => {
-        this.selectedFurniture = furniture;
+      this.selectedFurniture = furniture;
     });
     this.staffPanel = new StaffPanel();
     this.inventoryPanel = new InventoryPanel();
@@ -84,11 +84,11 @@ export class InteriorView {
   }
 
   public showUI(): void {
-      // Nothing to do for Canvas UI, handled in render
+    // Nothing to do for Canvas UI, handled in render
   }
 
   public hideUI(): void {
-      this.selectedFurniture = null;
+    this.selectedFurniture = null;
   }
 
   public addFloatingText(x: number, y: number, text: string, color: string): void {
@@ -231,13 +231,17 @@ export class InteriorView {
     this.drawFurnitureGhost(interiorOffsetX, interiorOffsetY);
 
     this.ctx.restore();
+    this.renderUI(this.ctx);
 
     // Canvas UI Overlays that are "part of the scene" (like Creator)
-    this.pizzaCreator.render(this.ctx);
-    this.menuManager.render(this.ctx);
+    if (this.pizzaCreator.active) {
+      this.pizzaCreator.render(this.ctx);
+    }
 
+    if (this.menuManager.active) {
+      this.menuManager.render(this.ctx);
+    }
     // Render Main UI Overlay
-    this.renderUI(this.ctx);
 
     // Draw Floating Texts (Topmost Layer)
     this.drawFloatingTexts();
@@ -247,100 +251,103 @@ export class InteriorView {
    * Main UI Rendering Method (Overlay)
    */
   private renderUI(ctx: CanvasRenderingContext2D): void {
-      // Ensure we are in screen coordinates
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Ensure we are in screen coordinates
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-      const width = ctx.canvas.width;
-      const height = ctx.canvas.height;
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
 
-      // 1. Top Bar Background
-      ctx.fillStyle = '#2c3e50';
-      ctx.fillRect(0, 0, width, TOP_BAR_HEIGHT);
+    // 1. Top Bar Background
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(0, 0, width, TOP_BAR_HEIGHT);
 
-      // 2. Top Bar Buttons
-      const btnKreator = UI_LAYOUT.BTN_KREATOR;
-      const btnMenu = UI_LAYOUT.BTN_MENU;
-      const btnMiasto = UI_LAYOUT.BTN_MIASTO;
+    // 2. Top Bar Buttons
+    const btnKreator = UI_LAYOUT.BTN_KREATOR;
+    const btnMenu = UI_LAYOUT.BTN_MENU;
+    const btnMiasto = UI_LAYOUT.BTN_MIASTO;
 
-      this.drawButton(ctx, btnKreator.x, btnKreator.y, btnKreator.w, btnKreator.h, '🍕 Kreator', '#e67e22');
-      this.drawButton(ctx, btnMenu.x, btnMenu.y, btnMenu.w, btnMenu.h, '📜 Menu', '#27ae60');
+    this.drawButton(ctx, btnKreator.x, btnKreator.y, btnKreator.w, btnKreator.h, '🍕 Kreator', '#e67e22');
+    this.drawButton(ctx, btnMenu.x, btnMenu.y, btnMenu.w, btnMenu.h, '📜 Menu', '#27ae60');
 
-      const cityX = width - btnMiasto.right - btnMiasto.w;
-      this.drawButton(ctx, cityX, btnMiasto.y, btnMiasto.w, btnMiasto.h, '🏙️ Miasto', '#c0392b');
+    const cityX = width - btnMiasto.right - btnMiasto.w;
+    this.drawButton(ctx, cityX, btnMiasto.y, btnMiasto.w, btnMiasto.h, '🏙️ Miasto', '#c0392b');
 
-      // 3. Global HUD (Money)
-      const gameState = GameState.getInstance();
-      const money = gameState.player.money;
-      const reputation = this.activeRestaurant.reputationSystem.getAverageRating().toFixed(1);
-      const time = gameState.timeManager.getFormattedTime();
+    // 3. Global HUD (Money & Time)
+    const gameState = GameState.getInstance();
+    const money = gameState.player.money;
 
-      const hudStats = UI_LAYOUT.HUD_STATS;
-      ctx.fillStyle = '#f1c40f';
-      ctx.font = 'bold 20px Arial';
-      ctx.textAlign = 'right';
-      // Format: HH:MM | ★ 3.5 | $5000
-      ctx.fillText(`${time} | ★ ${reputation} | $${money}`, width - hudStats.right, hudStats.y);
+    // --- CRITICAL FIX HERE: Usunięto nawiasy (), to jest pole, nie metoda ---
+    const reputation = this.activeRestaurant.reputationSystem.averageRating.toFixed(1);
 
-      // 4. Side Panel Container
-      const panelX = width - SIDE_PANEL_WIDTH;
-      const panelY = TOP_BAR_HEIGHT;
-      const panelH = height - TOP_BAR_HEIGHT;
+    const time = gameState.timeManager.getFormattedTime();
 
-      // Draw Panel Background
-      ctx.fillStyle = '#281e14'; // Match FurniturePanel bg
-      ctx.fillRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
-      ctx.strokeStyle = '#8B4513';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
+    const hudStats = UI_LAYOUT.HUD_STATS;
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'right';
+    // Format: HH:MM | ★ 3.5 | $5000
+    ctx.fillText(`${time} | ★ ${reputation} | $${money}`, width - hudStats.right, hudStats.y);
 
-      // 5. Master Tabs
-      const tabWidth = SIDE_PANEL_WIDTH / 3;
-      const tabs = [
-          { key: 'furniture', label: '🏠' },
-          { key: 'staff', label: '👥' },
-          { key: 'inventory', label: '📦' }
-      ];
+    // 4. Side Panel Container
+    const panelX = width - SIDE_PANEL_WIDTH;
+    const panelY = TOP_BAR_HEIGHT;
+    const panelH = height - TOP_BAR_HEIGHT;
 
-      tabs.forEach((tab, index) => {
-          const tX = panelX + index * tabWidth;
-          const tY = panelY;
-          const isActive = this.activeTab === tab.key;
+    // Draw Panel Background
+    ctx.fillStyle = '#281e14'; // Match FurniturePanel bg
+    ctx.fillRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(panelX, panelY, SIDE_PANEL_WIDTH, panelH);
 
-          ctx.fillStyle = isActive ? '#A0522D' : '#553322';
-          ctx.fillRect(tX, tY, tabWidth, MASTER_TAB_HEIGHT);
-          ctx.strokeRect(tX, tY, tabWidth, MASTER_TAB_HEIGHT);
+    // 5. Master Tabs
+    const tabWidth = SIDE_PANEL_WIDTH / 3;
+    const tabs = [
+      {key: 'furniture', label: '🏠'},
+      {key: 'staff', label: '👥'},
+      {key: 'inventory', label: '📦'}
+    ];
 
-          ctx.fillStyle = '#FFF';
-          ctx.font = '20px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(tab.label, tX + tabWidth / 2, tY + MASTER_TAB_HEIGHT / 2);
-      });
+    tabs.forEach((tab, index) => {
+      const tX = panelX + index * tabWidth;
+      const tY = panelY;
+      const isActive = this.activeTab === tab.key;
 
-      // 6. Active Sub-Panel
-      const contentY = panelY + MASTER_TAB_HEIGHT;
-      const contentH = panelH - MASTER_TAB_HEIGHT;
+      ctx.fillStyle = isActive ? '#A0522D' : '#553322';
+      ctx.fillRect(tX, tY, tabWidth, MASTER_TAB_HEIGHT);
+      ctx.strokeRect(tX, tY, tabWidth, MASTER_TAB_HEIGHT);
 
-      if (this.activeTab === 'furniture') {
-          this.furniturePanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH);
-      } else if (this.activeTab === 'staff') {
-          this.staffPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
-      } else if (this.activeTab === 'inventory') {
-          this.inventoryPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
-      }
+      ctx.fillStyle = '#FFF';
+      ctx.font = '20px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(tab.label, tX + tabWidth / 2, tY + MASTER_TAB_HEIGHT / 2);
+    });
+
+    // 6. Active Sub-Panel
+    const contentY = panelY + MASTER_TAB_HEIGHT;
+    const contentH = panelH - MASTER_TAB_HEIGHT;
+
+    if (this.activeTab === 'furniture') {
+      this.furniturePanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH);
+    } else if (this.activeTab === 'staff') {
+      this.staffPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
+    } else if (this.activeTab === 'inventory') {
+      this.inventoryPanel.render(ctx, panelX, contentY, SIDE_PANEL_WIDTH, contentH, this.activeRestaurant);
+    }
   }
 
   private drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, text: string, color: string): void {
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = '#FFF';
-      ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#FFF';
+    ctx.strokeRect(x, y, w, h);
 
-      ctx.fillStyle = '#FFF';
-      ctx.font = 'bold 14px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(text, x + w / 2, y + h / 2);
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + w / 2, y + h / 2);
   }
 
   private drawFloatingTexts(): void {
@@ -582,59 +589,59 @@ export class InteriorView {
 
     // 1. Top Bar Interaction
     if (clickY < TOP_BAR_HEIGHT) {
-        const btnKreator = UI_LAYOUT.BTN_KREATOR;
-        const btnMenu = UI_LAYOUT.BTN_MENU;
-        const btnMiasto = UI_LAYOUT.BTN_MIASTO;
+      const btnKreator = UI_LAYOUT.BTN_KREATOR;
+      const btnMenu = UI_LAYOUT.BTN_MENU;
+      const btnMiasto = UI_LAYOUT.BTN_MIASTO;
 
-        // Kreator
-        if (clickX >= btnKreator.x && clickX <= btnKreator.x + btnKreator.w &&
-            clickY >= btnKreator.y && clickY <= btnKreator.y + btnKreator.h) {
-            this.pizzaCreator.open();
-            return;
-        }
-        // Menu
-        if (clickX >= btnMenu.x && clickX <= btnMenu.x + btnMenu.w &&
-            clickY >= btnMenu.y && clickY <= btnMenu.y + btnMenu.h) {
-            this.menuManager.open();
-            return;
-        }
-        // City
-        const cityX = width - btnMiasto.right - btnMiasto.w;
-        if (clickX >= cityX && clickX <= cityX + btnMiasto.w &&
-            clickY >= btnMiasto.y && clickY <= btnMiasto.y + btnMiasto.h) {
-            changeView(null);
-            return;
-        }
+      // Kreator
+      if (clickX >= btnKreator.x && clickX <= btnKreator.x + btnKreator.w &&
+        clickY >= btnKreator.y && clickY <= btnKreator.y + btnKreator.h) {
+        this.pizzaCreator.open();
+        return;
+      }
+      // Menu
+      if (clickX >= btnMenu.x && clickX <= btnMenu.x + btnMenu.w &&
+        clickY >= btnMenu.y && clickY <= btnMenu.y + btnMenu.h) {
+        this.menuManager.open();
+        return;
+      }
+      // City
+      const cityX = width - btnMiasto.right - btnMiasto.w;
+      if (clickX >= cityX && clickX <= cityX + btnMiasto.w &&
+        clickY >= btnMiasto.y && clickY <= btnMiasto.y + btnMiasto.h) {
+        changeView(null);
+        return;
+      }
     }
 
     // 2. Side Panel Interaction
     const panelX = width - SIDE_PANEL_WIDTH;
     if (clickX >= panelX && clickY >= TOP_BAR_HEIGHT) {
-        // Check Master Tabs
-        if (clickY <= TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT) {
-            const tabWidth = SIDE_PANEL_WIDTH / 3;
-            const localX = clickX - panelX;
-            const index = Math.floor(localX / tabWidth);
-            if (index === 0) this.activeTab = 'furniture';
-            if (index === 1) this.activeTab = 'staff';
-            if (index === 2) this.activeTab = 'inventory';
-            return;
-        }
-
-        // Delegate to Sub-Panel
-        const contentY = TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT;
+      // Check Master Tabs
+      if (clickY <= TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT) {
+        const tabWidth = SIDE_PANEL_WIDTH / 3;
         const localX = clickX - panelX;
-        const localY = clickY - contentY;
+        const index = Math.floor(localX / tabWidth);
+        if (index === 0) this.activeTab = 'furniture';
+        if (index === 1) this.activeTab = 'staff';
+        if (index === 2) this.activeTab = 'inventory';
+        return;
+      }
 
-        if (this.activeTab === 'furniture') {
-            const selected = this.furniturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
-            if (selected) this.selectedFurniture = selected;
-        } else if (this.activeTab === 'staff') {
-            this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
-        } else if (this.activeTab === 'inventory') {
-            this.inventoryPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
-        }
-        return; // Consumed by UI
+      // Delegate to Sub-Panel
+      const contentY = TOP_BAR_HEIGHT + MASTER_TAB_HEIGHT;
+      const localX = clickX - panelX;
+      const localY = clickY - contentY;
+
+      if (this.activeTab === 'furniture') {
+        const selected = this.furniturePanel.handleClick(localX, localY, SIDE_PANEL_WIDTH);
+        if (selected) this.selectedFurniture = selected;
+      } else if (this.activeTab === 'staff') {
+        this.staffPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
+      } else if (this.activeTab === 'inventory') {
+        this.inventoryPanel.handleClick(localX, localY, SIDE_PANEL_WIDTH, this.activeRestaurant);
+      }
+      return; // Consumed by UI
     }
 
     // World Interaction (Placing Furniture)
