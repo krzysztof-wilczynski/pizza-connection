@@ -157,7 +157,7 @@ export class InteriorView {
     for (let y = 0; y < this.activeRestaurant.height; y++) {
       for (let x = 0; x < this.activeRestaurant.width; x++) {
         const tile = this.activeRestaurant.getTile(x, y);
-        if (tile && tile.wallType !== WallType.None) {
+        if (tile && (tile.wallType !== WallType.None || tile.wallType === WallType.Door)) {
           const assetKey = this.getWallAsset(this.activeRestaurant.grid, x, y);
           renderList.push({
             type: 'wall',
@@ -621,7 +621,9 @@ export class InteriorView {
 
     const hasWall = (nx: number, ny: number) => {
       if (nx < 0 || ny < 0 || nx >= width || ny >= height) return false;
-      return grid[ny][nx].wallType !== WallType.None;
+      const tile = grid[ny][nx];
+      // Walls connect to other walls AND doors
+      return tile.wallType !== WallType.None;
     };
 
     const n = hasWall(x, y - 1); // North
@@ -645,6 +647,25 @@ export class InteriorView {
 
   private drawWall(x: number, y: number, type: WallType, assetKey?: string): void {
     const assetName = assetKey || 'interior_wall_corner';
+
+    // Special case for doors
+    if (type === WallType.Door) {
+       // Ideally we have a door asset, for now reuse wall with hole or tint?
+       // Using existing wall asset but maybe tinting it or drawing a "door" rectangle
+       const img = this.assetManager.getAsset(assetName); // Use wall asset for base
+       const screenPos = gridToScreen(x, y);
+
+       if (img && img.naturalWidth > 0) {
+          this.ctx.drawImage(img, screenPos.x - img.naturalWidth / 2, screenPos.y - img.naturalHeight + TILE_HEIGHT_HALF);
+          // Draw Door overlay
+          this.ctx.fillStyle = 'rgba(100, 50, 0, 0.8)';
+          this.ctx.fillRect(screenPos.x - 5, screenPos.y - 30, 10, 30);
+       } else {
+          this.ctx.fillStyle = '#A0522D'; // Brown
+          this.ctx.fillRect(screenPos.x - 10, screenPos.y - 40, 20, 40);
+       }
+       return;
+    }
 
     const img = this.assetManager.getAsset(assetName);
     const screenPos = gridToScreen(x, y);
@@ -689,10 +710,6 @@ export class InteriorView {
     if (this.activeTab === 'architecture' && this.architecturePanel.activeTool?.type === 'zone') {
        this.drawZoneOverlay(x, y, tile?.zone);
     }
-
-    // Also draw actual zones always if they are set?
-    // Usually only in edit mode, or always for visual clarity?
-    // Instructions say: "Jeśli włączony jest tryb edycji stref, rysuj..."
   }
 
   private drawZoneOverlay(screenX: number, screenY: number, zone: ZoneType | undefined): void {
@@ -894,21 +911,32 @@ export class InteriorView {
         }
 
         const tool = this.architecturePanel.activeTool;
-        const player = GameState.getInstance().player;
+        let success = false;
 
-        if (player.money >= tool.cost) {
-           if (tool.type === 'wall') {
-             this.activeRestaurant.setWall(gridX, gridY, tool.value as WallType);
-           } else if (tool.type === 'zone') {
+        if (tool.type === 'wall') {
+            if (tool.value === WallType.Door) {
+                success = this.activeRestaurant.placeDoor(gridX, gridY);
+            } else {
+                success = this.activeRestaurant.placeWall(gridX, gridY, tool.value as WallType);
+            }
+        } else if (tool.type === 'zone') {
+             // Zones are currently free, but if cost added, logic goes here
              this.activeRestaurant.setZone(gridX, gridY, tool.value as ZoneType);
-           }
+             success = true;
+        }
 
+        if (success) {
            if (tool.cost > 0) {
-             player.spendMoney(tool.cost);
              this.addFloatingText(this.mousePosition.x, this.mousePosition.y, `-$${tool.cost}`, "red");
            }
         } else {
-          this.addFloatingText(this.mousePosition.x, this.mousePosition.y, "Brak kasy!", "red");
+           // Basic error feedback
+           const player = GameState.getInstance().player;
+           if (player.money < tool.cost) {
+              this.addFloatingText(this.mousePosition.x, this.mousePosition.y, "Brak kasy!", "red");
+           } else {
+              this.addFloatingText(this.mousePosition.x, this.mousePosition.y, "Zablokowane!", "red");
+           }
         }
       }
     }
@@ -932,11 +960,41 @@ export class InteriorView {
 
     this.ctx.save();
 
+    // Determine validity (Money & Logic)
+    // We can duplicate the logic check here for visual feedback (Green/Red)
+    let isValid = true;
+    const player = GameState.getInstance().player;
+    if (player.money < tool.cost) isValid = false;
+
+    // Logic Checks
+    const tile = this.activeRestaurant.getTile(gridX, gridY);
+    if (tool.type === 'wall') {
+       if (tool.value === WallType.Door) {
+           // Must be a wall
+           if (!tile || (tile.wallType === WallType.None || tile.wallType === WallType.Door)) isValid = false;
+       } else if (tool.value === WallType.None) {
+           // Demolish: Must be something there
+           if (!tile || tile.wallType === WallType.None) isValid = false;
+       }
+    }
+
+    // Set Color based on Validity
+    if (!isValid) {
+        this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // Red Error
+        this.ctx.strokeStyle = 'red';
+    } else {
+        this.ctx.fillStyle = 'rgba(0, 255, 0, 0.3)'; // Green Good
+        this.ctx.strokeStyle = 'green';
+    }
+
+
     // Ghost Logic
     if (tool.type === 'zone') {
        // Zone Ghost
        const color = tool.color || 'white';
-       this.ctx.fillStyle = color.replace('0.3', '0.6'); // More opaque for ghost
+       // Override color if invalid? No, zones are usually free/valid unless obstructed?
+       // Currently zones have no cost and can be placed anywhere.
+       this.ctx.fillStyle = color.replace('0.3', '0.6');
 
        this.ctx.beginPath();
        this.ctx.moveTo(screenTile.x, screenTile.y);
@@ -949,8 +1007,7 @@ export class InteriorView {
        // Wall Ghost
        this.ctx.globalAlpha = 0.5;
        if (tool.value === WallType.None) {
-          // Remover (Red Cross on floor)
-          this.ctx.strokeStyle = 'red';
+          // Remover (Cross)
           this.ctx.lineWidth = 3;
           this.ctx.beginPath();
           this.ctx.moveTo(screenTile.x - 10, screenTile.y + TILE_HEIGHT_HALF);
@@ -963,9 +1020,11 @@ export class InteriorView {
           const assetName = 'interior_wall_corner'; // Generic for ghost
           const img = this.assetManager.getAsset(assetName);
           if (img) {
-            this.ctx.drawImage(img, screenTile.x - img.naturalWidth/2, screenTile.y - img.naturalHeight + TILE_HEIGHT_HALF);
+             this.ctx.drawImage(img, screenTile.x - img.naturalWidth/2, screenTile.y - img.naturalHeight + TILE_HEIGHT_HALF);
+             // Apply tint on top
+             this.ctx.globalCompositeOperation = 'source-atop';
+             this.ctx.fillRect(screenTile.x - 20, screenTile.y - 40, 40, 80); // Crude tint area
           } else {
-             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
              this.ctx.fillRect(screenTile.x - 10, screenTile.y - 40, 20, 40);
           }
        }

@@ -8,6 +8,7 @@ import { Order } from '../model/Order';
 import { ReputationSystem } from '../model/ReputationSystem';
 import { TimeManager } from './TimeManager';
 import { INGREDIENT_DEFINITIONS } from '../data/ingredientDefinitions';
+import { InteriorTile } from '../model/Tile';
 
 // DTO Interfaces for Serialization
 interface GameStateDTO {
@@ -37,6 +38,7 @@ interface RestaurantDTO {
   width: number;
   height: number;
   appeal: number;
+  grid: InteriorTile[][];
 }
 
 interface PizzaDTO {
@@ -234,16 +236,28 @@ export class PersistenceManager {
       readyCounter: restaurant.readyCounter.map(o => this.serializeOrder(o)),
       width: restaurant.width,
       height: restaurant.height,
-      appeal: restaurant.appeal
+      appeal: restaurant.appeal,
+      grid: restaurant.grid
     };
   }
 
   private deserializeRestaurant(dto: RestaurantDTO, gameState: GameState): Restaurant {
     const restaurant = new Restaurant();
     restaurant.id = dto.id;
-    restaurant.width = dto.width;
-    restaurant.height = dto.height;
+    // restaurant.width/height read-only via getters based on grid, but DTO has them for ref
+    // We rely on grid or initialization.
     restaurant.appeal = dto.appeal;
+
+    // Grid Restoration (Critical)
+    if (dto.grid && Array.isArray(dto.grid) && dto.grid.length > 0) {
+        restaurant.grid = dto.grid;
+    } else {
+        // Fallback for legacy saves or missing grid
+        // Use the width/height from DTO if available, otherwise default 10x10
+        const w = dto.width || 10;
+        const h = dto.height || 10;
+        restaurant.grid = restaurant.initializeGrid(w, h);
+    }
 
     // Reputation
     restaurant.reputationSystem.averageRating = dto.reputation.averageRating;

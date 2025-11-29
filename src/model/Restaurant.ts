@@ -10,6 +10,7 @@ import { CustomerAISystem } from '../systems/CustomerAISystem';
 import { EmployeeAISystem } from '../systems/EmployeeAISystem';
 import { InteriorTile } from './Tile';
 import { WallType, ZoneType } from './enums';
+import { CONSTRUCTION_COSTS } from '../data/ConstructionCosts';
 
 export class Restaurant {
   public id: string;
@@ -33,7 +34,7 @@ export class Restaurant {
     this.grid = this.initializeGrid(10, 10);
   }
 
-  private initializeGrid(width: number, height: number): InteriorTile[][] {
+  public initializeGrid(width: number, height: number): InteriorTile[][] {
     const grid: InteriorTile[][] = [];
     for (let y = 0; y < height; y++) {
       const row: InteriorTile[] = [];
@@ -70,12 +71,72 @@ export class Restaurant {
     return this.grid[y][x];
   }
 
-  public setWall(x: number, y: number, type: WallType) {
+  // --- Construction Methods ---
+
+  public placeWall(x: number, y: number, type: WallType): boolean {
     const tile = this.getTile(x, y);
-    if (tile) {
-      tile.wallType = type;
-      tile.isWalkable = type === WallType.None;
+    if (!tile) return false;
+
+    // If type is None, it's actually a demolition of a wall
+    if (type === WallType.None) {
+      return this.removeStructure(x, y);
     }
+
+    // Check cost
+    const player = GameState.getInstance().player;
+    if (player.money < CONSTRUCTION_COSTS.WALL) {
+      return false;
+    }
+
+    // Apply change
+    player.spendMoney(CONSTRUCTION_COSTS.WALL);
+    tile.wallType = type;
+    tile.isWalkable = false;
+    return true;
+  }
+
+  public placeDoor(x: number, y: number): boolean {
+    const tile = this.getTile(x, y);
+    if (!tile) return false;
+
+    // Check if there is a wall here (excluding None and Door)
+    if (tile.wallType === WallType.None || tile.wallType === WallType.Door) {
+      return false;
+    }
+
+    // Check cost
+    const player = GameState.getInstance().player;
+    if (player.money < CONSTRUCTION_COSTS.DOOR) {
+      return false;
+    }
+
+    // Apply change
+    player.spendMoney(CONSTRUCTION_COSTS.DOOR);
+    tile.wallType = WallType.Door;
+    tile.isWalkable = true; // Doors are walkable
+    return true;
+  }
+
+  public removeStructure(x: number, y: number): boolean {
+    const tile = this.getTile(x, y);
+    if (!tile) return false;
+
+    // Nothing to remove
+    if (tile.wallType === WallType.None) {
+      return false;
+    }
+
+    // Check cost
+    const player = GameState.getInstance().player;
+    if (player.money < CONSTRUCTION_COSTS.DEMOLISH) {
+      return false;
+    }
+
+    // Apply change
+    player.spendMoney(CONSTRUCTION_COSTS.DEMOLISH);
+    tile.wallType = WallType.None;
+    tile.isWalkable = true;
+    return true;
   }
 
   public setZone(x: number, y: number, zone: ZoneType) {
@@ -129,8 +190,9 @@ export class Restaurant {
 
   public consumeIngredientsFor(pizza: Pizza): void {
     for (const ingredient of pizza.ingredients) {
-        const currentAmount = this.inventory.get(ingredient.id) || 0;
-        this.inventory.set(ingredient.id, Math.max(0, currentAmount - 1));
+        const ingredientId = ingredient.id;
+        const currentAmount = this.inventory.get(ingredientId) || 0;
+        this.inventory.set(ingredientId, Math.max(0, currentAmount - 1));
     }
   }
 
